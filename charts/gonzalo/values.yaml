@@ -1,0 +1,21 @@
+# Generic, cluster-agnostic defaults ONLY.
+# Supply environment-specific values (hostnames, storageClass, ingress, secrets)
+# via a SEPARATE PRIVATE overlay at deploy time:  helm install ... -f private-values.yaml
+replicaCount: 1
+image:
+  repository: ""          # e.g. ghcr.io/caliban-ai/gonzalo (set at deploy time)
+  tag: ""                 # defaults to .Chart.AppVersion when unset
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 8080
+resources: {}
+persistence:
+  enabled: false
+  storageClass: ""        # "" = cluster default
+  size: 1Gi
+ingress:
+  enabled: false          # off by default; no baked hostnames
+nodeSelector: {}
+tolerations: []
+affinity: {}

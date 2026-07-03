@@ -1,0 +1,36 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - name: leakage guard (charts must be cluster-agnostic)
+        run: bash scripts/check-no-cluster-leakage.sh
+      - name: helm lint (leaf charts)
+        run: |
+          for c in charts/gonzalo charts/prospero charts/caliban-operator; do
+            echo "== lint $c =="; helm lint "$c"
+          done
+      - name: helm lint (umbrella)
+        run: |
+          helm dependency build charts/caliban-system
+          helm lint charts/caliban-system
+      - name: kubeconform (rendered manifests)
+        run: |
+          curl -sSLo /tmp/kc.tgz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kc.tgz -C /tmp kubeconform
+          for c in charts/gonzalo charts/prospero charts/caliban-operator; do
+            echo "== kubeconform $c =="
+            helm template "$c" | /tmp/kubeconform -strict -summary -
+          done

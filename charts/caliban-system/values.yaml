@@ -1,0 +1,10 @@
+# Umbrella composition. agent-sandbox is a CLUSTER PREREQUISITE installed
+# separately (see repo README) — it is NOT a chart dependency here.
+# All subcharts inherit the cluster-agnostic rule; supply env specifics via a
+# private overlay at deploy time.
+gonzalo:
+  enabled: true
+prospero:
+  enabled: true
+caliban-operator:
+  enabled: true

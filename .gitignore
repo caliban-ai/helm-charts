@@ -1,0 +1,7 @@
+*.tgz
+charts/**/charts/
+charts/**/Chart.lock
+.DS_Store
+
+# private, per-operator chart deny-list (never commit)
+.chart-deny-extra

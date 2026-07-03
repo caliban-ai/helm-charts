@@ -1,0 +1,1 @@
+prospero chart (skeleton). Templates land in the per-app content ticket.

@@ -1,0 +1,2 @@
+caliban-system umbrella (skeleton). Ensure agent-sandbox is installed as a
+cluster prerequisite before deploying agent workloads.
