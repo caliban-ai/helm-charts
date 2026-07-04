@@ -1,21 +1,33 @@
 # Generic, cluster-agnostic defaults ONLY.
-# Supply environment-specific values (hostnames, storageClass, ingress, secrets)
-# via a SEPARATE PRIVATE overlay at deploy time:  helm install ... -f private-values.yaml
-replicaCount: 1
+# Supply environment-specific values (storageClass, ingress, database URL,
+# secrets) via a SEPARATE PRIVATE overlay:  helm install ... -f private-values.yaml
+
+# standalone = sqlite on a PVC, single replica (StatefulSet).
+# clustered  = external Postgres, N replicas with leased ownership (Deployment).
+topology: standalone
+replicaCount: 1            # used in clustered mode
 image:
-  repository: ""          # e.g. ghcr.io/caliban-ai/prospero (set at deploy time)
-  tag: ""                 # defaults to .Chart.AppVersion when unset
+  repository: ""           # e.g. ghcr.io/caliban-ai/prospero (set at deploy time)
+  tag: ""                  # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP
-  port: 8088
-resources: {}
-persistence:
-  enabled: false
-  storageClass: ""        # "" = cluster default
+  port: 7878               # prosperod REST/SSE/dashboard (corrected from 8088)
+host: local                # PROSPERO_HOST fleet identity
+autostart: false           # false ⇒ pass --no-autostart (no caliband in this image)
+persistence:               # standalone only (no toggle: the StatefulSet's PVC is always required)
+  storageClass: ""         # "" = cluster default
   size: 1Gi
-ingress:
-  enabled: false          # off by default; no baked hostnames
+  accessMode: ReadWriteOnce
+database:                  # clustered only
+  # Provide the Postgres URL via a pre-created Secret (preferred):
+  existingSecret: ""       # Secret name holding the URL
+  secretKey: url           # key within that Secret
+  # …or inline (creates a Secret; keep out of the public repo — overlay only):
+  url: ""
+leaseTtlSecs: 30           # clustered lease TTL
+env: {}                    # extra raw env (map of name: value)
+resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}

@@ -1,0 +1,87 @@
+{{- if eq .Values.topology "standalone" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "prospero.fullname" . }}
+  labels:
+    {{- include "prospero.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "prospero.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "prospero.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "prospero.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "prospero.fullname" . }}
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: prosperod
+          image: {{ include "prospero.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --addr
+            - "0.0.0.0:{{ .Values.service.port }}"
+            - --data-dir
+            - /data
+            - --host
+            - {{ .Values.host | quote }}
+            {{- if not .Values.autostart }}
+            - --no-autostart
+            {{- end }}
+          env:
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ {{ .Values.persistence.accessMode | quote }} ]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+{{- end }}

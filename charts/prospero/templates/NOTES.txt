@@ -1,1 +1,18 @@
-prospero chart (skeleton). Templates land in the per-app content ticket.
+prospero (prosperod) is installed in "{{ .Values.topology }}" topology.
+
+Dashboard / API (ClusterIP):
+  http://{{ include "prospero.fullname" . }}:{{ .Values.service.port }}/
+  health:  /healthz   ready: /readyz
+
+{{- if eq .Values.topology "standalone" }}
+Standalone: single replica, sqlite on a {{ .Values.persistence.size }} PVC.
+{{- else }}
+Clustered: {{ .Values.replicaCount }} replicas over external Postgres with leased
+ownership. Postgres is a prerequisite you provide (not shipped by this chart).
+{{- end }}
+
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set it, e.g.
+  --set image.repository=ghcr.io/caliban-ai/prospero
+{{- end }}
