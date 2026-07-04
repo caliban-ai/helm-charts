@@ -1,1 +1,14 @@
-gonzalo chart (skeleton). Templates land in the per-app content ticket.
+gonzalo (gonzalod) is installed as StatefulSet {{ include "gonzalo.fullname" . }}.
+
+In-cluster endpoints (ClusterIP):
+  HTTP:  {{ include "gonzalo.fullname" . }}:{{ .Values.service.httpPort }}
+  gRPC:  {{ include "gonzalo.fullname" . }}:{{ .Values.service.grpcPort }}
+
+This release uses the filesystem substrate on a single replica (PVC-backed).
+Multi-replica HA over an object store is a follow-on (see the chart README).
+
+{{- if not .Values.image.repository }}
+
+WARNING: image.repository is empty. Set it at install time, e.g.
+  --set image.repository=ghcr.io/caliban-ai/gonzalo
+{{- end }}

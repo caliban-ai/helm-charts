@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "gonzalo.fullname" . }}
+  labels:
+    {{- include "gonzalo.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "gonzalo.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gonzalo.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gonzalo.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "gonzalo.fullname" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: gonzalod
+          image: {{ include "gonzalo.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GONZALO_ROOT
+              value: /data
+            - name: GONZALO_HTTP_ADDR
+              value: "0.0.0.0:{{ .Values.service.httpPort }}"
+            - name: GONZALO_GRPC_ADDR
+              value: "0.0.0.0:{{ .Values.service.grpcPort }}"
+            {{- if .Values.auth.token }}
+            - name: GONZALO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gonzalo.fullname" . }}-auth
+                  key: GONZALO_TOKEN
+            {{- end }}
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.httpPort }}
+            - name: grpc
+              containerPort: {{ .Values.service.grpcPort }}
+          # gonzalod has no HTTP health endpoint — probe the TCP port.
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ {{ .Values.persistence.accessMode | quote }} ]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}

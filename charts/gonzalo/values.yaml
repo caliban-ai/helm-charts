@@ -1,21 +1,24 @@
 # Generic, cluster-agnostic defaults ONLY.
-# Supply environment-specific values (hostnames, storageClass, ingress, secrets)
-# via a SEPARATE PRIVATE overlay at deploy time:  helm install ... -f private-values.yaml
-replicaCount: 1
+# Supply environment-specific values (storageClass, ingress, secrets) via a
+# SEPARATE PRIVATE overlay at deploy time:  helm install ... -f private-values.yaml
+replicaCount: 1            # fs substrate = single writer; HA (multi-replica over
+                           # an object store) is a follow-on — see chart README.
 image:
-  repository: ""          # e.g. ghcr.io/caliban-ai/gonzalo (set at deploy time)
-  tag: ""                 # defaults to .Chart.AppVersion when unset
+  repository: ""           # e.g. ghcr.io/caliban-ai/gonzalo (set at deploy time)
+  tag: ""                  # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP
-  port: 8080
-resources: {}
-persistence:
-  enabled: false
-  storageClass: ""        # "" = cluster default
+  httpPort: 8080
+  grpcPort: 50051
+auth:
+  token: ""                # if set, mounted as GONZALO_TOKEN via a Secret; "" = off
+persistence:               # fs substrate always provisions a PVC (not optional)
+  storageClass: ""         # "" = cluster default
   size: 1Gi
-ingress:
-  enabled: false          # off by default; no baked hostnames
+  accessMode: ReadWriteOnce
+env: {}                    # extra raw env vars (map of name: value)
+resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
