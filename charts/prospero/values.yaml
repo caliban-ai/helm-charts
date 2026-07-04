@@ -10,6 +10,7 @@ image:
   repository: ""           # e.g. ghcr.io/caliban-ai/prospero (set at deploy time)
   tag: ""                  # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
+imagePullSecrets: []       # e.g. [{ name: ghcr-pull }] when pulling private images
 service:
   type: ClusterIP
   port: 7878               # prosperod REST/SSE/dashboard (corrected from 8088)
