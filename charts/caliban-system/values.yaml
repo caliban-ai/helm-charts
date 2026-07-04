@@ -1,10 +1,27 @@
-# Umbrella composition. agent-sandbox is a CLUSTER PREREQUISITE installed
-# separately (see repo README) — it is NOT a chart dependency here.
-# All subcharts inherit the cluster-agnostic rule; supply env specifics via a
-# private overlay at deploy time.
+# Umbrella composition for the caliban-ai system.
+#
+# agent-sandbox is a CLUSTER PREREQUISITE installed separately (see repo README) —
+# it is NOT a chart dependency here.
+#
+# Subcharts inherit the cluster-agnostic rule: this file ships only generic,
+# public defaults. Supply environment-specific values (storageClass, ingress,
+# resources, database URL, secrets) via a SEPARATE PRIVATE overlay at deploy time:
+#   helm install caliban-system charts/caliban-system -f private-values.yaml
+
 gonzalo:
   enabled: true
+  image:
+    repository: ghcr.io/caliban-ai/gonzalo   # public image; tag defaults to the chart's appVersion
+
 prospero:
   enabled: true
+  image:
+    repository: ghcr.io/caliban-ai/prospero   # public image; tag defaults to the chart's appVersion
+  # topology defaults to "standalone" (sqlite + PVC, single replica). For HA,
+  # set prospero.topology=clustered + prospero.database.existingSecret in your overlay.
+
+# The operator is not built yet — it arrives in P2 (agent-sandbox + CalibanTask).
+# Kept OFF so the umbrella deploys the ready tiers (gonzalo + prospero) today.
+# Flip to true once the caliban-operator chart is real.
 caliban-operator:
-  enabled: true
+  enabled: false

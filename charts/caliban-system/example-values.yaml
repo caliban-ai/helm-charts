@@ -1,0 +1,37 @@
+# EXAMPLE overlay for the caliban-system umbrella.
+#
+# Copy this to a PRIVATE file, fill in YOUR cluster's values, and install with:
+#   helm dependency build charts/caliban-system
+#   helm install caliban-system charts/caliban-system -f my-private-values.yaml
+#
+# Do NOT commit your filled-in copy — this repo is cluster-agnostic by rule.
+# Every value below is optional; unset falls back to the chart's generic default.
+
+gonzalo:
+  enabled: true
+  persistence:
+    storageClass: ""        # your cluster's storage class; "" = cluster default (e.g. "standard", "local-path")
+    size: 5Gi
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits:   { cpu: "1",  memory: 512Mi }
+
+prospero:
+  enabled: true
+  topology: standalone      # single-node sqlite+PVC. Use "clustered" for HA (see below).
+  persistence:
+    storageClass: ""
+    size: 2Gi
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits:   { cpu: "1",  memory: 512Mi }
+  # --- prospero HA (clustered) — requires an external Postgres you provide ---
+  # topology: clustered
+  # replicaCount: 3
+  # database:
+  #   existingSecret: prospero-db   # kubectl create secret generic prospero-db --from-literal=url='postgres://user:pass@host:5432/prospero'
+  #   secretKey: url
+
+# Not built until P2 (agent-sandbox + CalibanTask). Leave off for now.
+caliban-operator:
+  enabled: false
