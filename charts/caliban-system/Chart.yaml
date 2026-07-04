@@ -3,7 +3,7 @@ name: caliban-system
 description: Umbrella chart composing the full caliban-ai system on Kubernetes
 type: application
 version: 0.1.0
-appVersion: "0.0.0"
+appVersion: "0.1.0"
 dependencies:
   - name: gonzalo
     version: "0.1.0"

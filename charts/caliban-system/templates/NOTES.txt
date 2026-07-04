@@ -1,2 +1,22 @@
-caliban-system umbrella (skeleton). Ensure agent-sandbox is installed as a
-cluster prerequisite before deploying agent workloads.
+caliban-system installed (release {{ .Release.Name }}).
+
+Deployed tiers:
+{{- if index .Values "gonzalo" "enabled" }}
+  ✓ gonzalo   — persistence daemon (gonzalod), Service {{ .Release.Name }}-gonzalo (HTTP :{{ index .Values "gonzalo" "service" "httpPort" | default 8080 }}, gRPC :{{ index .Values "gonzalo" "service" "grpcPort" | default 50051 }})
+{{- end }}
+{{- if index .Values "prospero" "enabled" }}
+  ✓ prospero  — control plane + dashboard, Service {{ .Release.Name }}-prospero (:{{ index .Values "prospero" "service" "port" | default 7878 }})
+      dashboard:  kubectl port-forward svc/{{ .Release.Name }}-prospero {{ index .Values "prospero" "service" "port" | default 7878 }}:{{ index .Values "prospero" "service" "port" | default 7878 }}  then open http://localhost:{{ index .Values "prospero" "service" "port" | default 7878 }}/
+{{- end }}
+{{- if index .Values "caliban-operator" "enabled" }}
+  ✓ caliban-operator
+{{- else }}
+  · caliban-operator — DISABLED (arrives in P2 with agent-sandbox + CalibanTask; no agents run in-cluster yet).
+{{- end }}
+
+Reminder: this chart is cluster-agnostic. Supply your cluster's storageClass,
+ingress, and resource settings via a private overlay (-f private-values.yaml) —
+see charts/caliban-system/example-values.yaml for a template.
+
+Before installing agent workloads (P2), agent-sandbox must be installed as a
+cluster prerequisite (see the repo README).
