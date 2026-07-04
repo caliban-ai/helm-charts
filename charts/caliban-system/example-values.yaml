@@ -6,9 +6,19 @@
 #
 # Do NOT commit your filled-in copy — this repo is cluster-agnostic by rule.
 # Every value below is optional; unset falls back to the chart's generic default.
+#
+# --- Pulling the images ---
+# The ghcr.io/caliban-ai/{gonzalo,prospero} packages are private by default.
+# Either make them public (simplest — no secret needed, drop the imagePullSecrets
+# lines below), or create a pull secret in the release namespace:
+#   kubectl create namespace caliban
+#   kubectl -n caliban create secret docker-registry ghcr-pull \
+#     --docker-server=ghcr.io --docker-username=<gh-user> --docker-password=<read:packages PAT>
+# then reference it per-app with imagePullSecrets (shown below).
 
 gonzalo:
   enabled: true
+  imagePullSecrets: []      # private images: [{ name: ghcr-pull }]
   persistence:
     storageClass: ""        # your cluster's storage class; "" = cluster default (e.g. "standard", "local-path")
     size: 5Gi
@@ -18,6 +28,7 @@ gonzalo:
 
 prospero:
   enabled: true
+  imagePullSecrets: []      # private images: [{ name: ghcr-pull }]
   topology: standalone      # single-node sqlite+PVC. Use "clustered" for HA (see below).
   persistence:
     storageClass: ""

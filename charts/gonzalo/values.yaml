@@ -7,6 +7,7 @@ image:
   repository: ""           # e.g. ghcr.io/caliban-ai/gonzalo (set at deploy time)
   tag: ""                  # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
+imagePullSecrets: []       # e.g. [{ name: ghcr-pull }] when pulling private images
 service:
   type: ClusterIP
   httpPort: 8080

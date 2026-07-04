@@ -19,6 +19,10 @@ spec:
         {{- include "prospero.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "prospero.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
