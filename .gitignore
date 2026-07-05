@@ -8,3 +8,7 @@ charts/**/Chart.lock
 
 # git worktrees for in-progress tickets (never commit)
 .claude/worktrees/
+
+# process scratch (brainstorming specs / implementation plans) — never committed
+# to this repo. ADRs (docs/adr/) ARE tracked; specs and plans are not.
+superpowers/

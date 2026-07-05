@@ -1,0 +1,13 @@
+# Invalid on purpose: spec.task is present but omits the required `prompt`.
+# The API server must REJECT this on create — proves the CRD schema has teeth.
+apiVersion: caliban.caliban-ai.dev/v1alpha1
+kind: CalibanTask
+metadata:
+  name: l1-invalid
+spec:
+  task: {}
+  workspace:
+    sources:
+      - name: caliban
+        path: /work/caliban
+        repo: https://example.invalid/caliban.git
