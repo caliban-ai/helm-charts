@@ -1,12 +1,22 @@
 # Umbrella composition for the caliban-ai system.
 #
-# agent-sandbox is a CLUSTER PREREQUISITE installed separately (see repo README) —
-# it is NOT a chart dependency here.
+# agent-sandbox is BUNDLED as a default-on subchart (our preferred install of the
+# cluster prerequisite). Set `agent-sandbox.enabled: false` to omit it and bring
+# your own agent-sandbox install (BYO) — see the repo README.
 #
 # Subcharts inherit the cluster-agnostic rule: this file ships only generic,
 # public defaults. Supply environment-specific values (storageClass, ingress,
 # resources, database URL, secrets) via a SEPARATE PRIVATE overlay at deploy time:
 #   helm install caliban-system charts/caliban-system -f private-values.yaml
+
+# agent-sandbox (kubernetes-sigs/agent-sandbox v0.5.0) — the Sandbox CRDs +
+# controller the operator composes. Default ON. Disable to BYO an existing install.
+agent-sandbox:
+  enabled: true
+  # image.tag defaults to v0.5.0 (pinned in the subchart); override to upgrade.
+  # Enable the SandboxTemplate/SandboxClaim/SandboxWarmPool controllers (epic P4):
+  # controller:
+  #   extensions: true
 
 gonzalo:
   enabled: true
