@@ -19,7 +19,7 @@ jobs:
         run: bash scripts/check-no-cluster-leakage.sh
       - name: helm lint (leaf charts)
         run: |
-          for c in charts/caliban-crds charts/gonzalo charts/prospero charts/caliban-operator; do
+          for c in charts/caliban-crds charts/agent-sandbox charts/gonzalo charts/prospero charts/caliban-operator; do
             echo "== lint $c =="; helm lint "$c"
           done
       - name: helm lint (umbrella)
@@ -30,7 +30,7 @@ jobs:
         run: |
           curl -sSLo /tmp/kc.tgz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
           tar -xzf /tmp/kc.tgz -C /tmp kubeconform
-          for c in charts/gonzalo charts/prospero charts/caliban-operator; do
+          for c in charts/agent-sandbox charts/gonzalo charts/prospero charts/caliban-operator; do
             echo "== kubeconform $c =="
             helm template "$c" | /tmp/kubeconform -strict -summary -
           done

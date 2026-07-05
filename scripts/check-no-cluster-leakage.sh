@@ -11,8 +11,13 @@ set -euo pipefail
 targets='charts/'
 fail=0
 grepc () { grep -rInE --exclude='*.md' --exclude-dir=.git "$1" $targets 2>/dev/null; }
-check () { # regex label
-  if grepc "$1"; then
+check () { # regex label [allow-regex]
+  local hits
+  hits=$(grepc "$1" || true)
+  # An optional 3rd arg whitelists matches that are generic, not environment-specific.
+  [ -n "${3:-}" ] && hits=$(printf '%s\n' "$hits" | grep -vE "$3" || true)
+  if [ -n "$hits" ]; then
+    printf '%s\n' "$hits"
     echo "::error::cluster-specific value ($2) found in charts/ — charts must be cluster-agnostic"
     fail=1
   fi
@@ -20,7 +25,10 @@ check () { # regex label
 check '\b10\.[0-9]+\.[0-9]+\.[0-9]+\b'                 'RFC1918 10.0.0.0/8'
 check '\b192\.168\.[0-9]+\.[0-9]+\b'                   'RFC1918 192.168.0.0/16'
 check '\b172\.(1[6-9]|2[0-9]|3[01])\.[0-9]+\.[0-9]+\b' 'RFC1918 172.16.0.0/12'
-check '[a-z0-9-]+\.local\b'                            '.local hostname'
+# `.local` mDNS hostnames — but NOT the reserved Kubernetes cluster domain
+# `cluster.local`, a universal, non-environment-specific default that recurs in
+# any chart generating service FQDNs.
+check '[a-z0-9-]+\.local\b'                            '.local hostname'           '\bcluster\.local\b'
 # private extra deny-list (never committed to this public repo)
 extra=""
 [ -n "${CHART_DENY_PATTERNS:-}" ] && extra+=$'\n'"${CHART_DENY_PATTERNS}"
