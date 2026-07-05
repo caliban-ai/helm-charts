@@ -50,7 +50,11 @@ smoke gonzalo  gonzalo          caliban-l1-gonzalo
 smoke prospero prospero         caliban-l1-prospero
 smoke op       caliban-operator caliban-l1-operator
 smoke crds     caliban-crds     caliban-l1-crds
-helm dependency build "$CHARTS/caliban-system" >/dev/null 2>&1 || true
+# `update` (not `build`) regenerates Chart.lock from Chart.yaml and vendors every
+# dependency — including agent-sandbox, which the umbrella bundles by default. It
+# works offline for the file:// local subcharts, so no registry access is needed.
+helm dependency update "$CHARTS/caliban-system" >/dev/null 2>&1 || true
+# Full default stack: agent-sandbox is default-on; also turn on the operator + CRDs.
 smoke sys caliban-system caliban-l1-umbrella \
   --set caliban-crds.enabled=true --set caliban-operator.enabled=true
 
