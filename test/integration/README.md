@@ -13,7 +13,7 @@ gate** (see below); Level 3 is deferred:
 |-------|----------------|:---:|:---:|:---:|
 | **0** | Rendered YAML is schema-valid (`helm lint`, `kubeconform`) | no | no | ✅ required (`lint`) |
 | **1** | Charts **apply** to a real API server; `CalibanTask` round-trips its CRD schema; operator **RBAC is sufficient** | no | no | ✅ required (`integration`) |
-| **2** | Full umbrella (agent-sandbox + gonzalo + prospero + operator + CRDs) reaches **Ready** on k3s | yes (all **public**) | no | ⚠️ non-blocking (`deploy-gate`) |
+| **2** | Full umbrella (agent-sandbox + gonzalo + prospero + operator + CRDs) reaches **Ready** on k3s | yes (all **public**) | no | ✅ required (`deploy-gate`) |
 | 3 | Full operator **reconcile** (a `CalibanTask` → a sandboxed pod) | yes | yes | ❌ deferred |
 
 ### Why Level 1 is the line
@@ -50,12 +50,17 @@ It uses **only public images** — no registry secrets, no private overlay. The
 red-wall unrelated PRs while readiness is being driven to green. Promote it to a
 required gate by dropping that line once it passes reliably.
 
-**Current status: green.** The `gonzalo`, `prospero`, and `caliban-operator` ghcr
-packages are public, and the full umbrella reaches Ready (verified on kind and k3s).
-The job is kept `continue-on-error` (non-blocking) as a soft launch; promote it to a
-required gate — drop that one line — once it has a few green CI runs. (History: it was
-initially red because those packages defaulted to **private** despite their source
+**Required gate.** The `gonzalo`, `prospero`, and `caliban-operator` ghcr packages are
+public and the full umbrella reaches Ready (verified on kind + k3s), so `deploy-gate`
+is a blocking gate — a red means the umbrella can no longer be stood up. (History: it
+was initially red because those packages defaulted to **private** despite their source
 repos being public — ghcr package visibility is independent of repo visibility.)
+
+**What L2 does *not* cover.** It stops short of a reconcile: it never creates a
+`CalibanTask`, so the caliband image is never pulled — caliband appears only as the
+operator's `CALIBAND_IMAGE` env var, which is consumed at reconcile time. So a green L2
+means the umbrella *deploys and comes up*, not that a submitted task *runs*. Proving a
+task actually runs (and that `ghcr.io/caliban-ai/caliban` is published) is **Level 3**.
 
 ### Why Level 3 stays deferred
 

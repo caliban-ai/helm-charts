@@ -67,12 +67,12 @@ jobs:
     # Level 2 deployability gate: installs the FULL umbrella (agent-sandbox +
     # gonzalo + prospero + operator + CRDs) on k3s and waits for every workload to
     # reach Ready. Green == the umbrella is safe to deploy to the k3s home cluster.
-    # Passes today: the gonzalo/prospero/caliban-operator ghcr packages are public
-    # and the full umbrella reaches Ready (verified on kind + k3s). Kept NON-BLOCKING
-    # (continue-on-error) as a soft launch; drop continue-on-error to promote it to a
-    # required gate once it has a few green CI runs. See test/integration/README.md.
+    # REQUIRED gate: the gonzalo/prospero/caliban-operator ghcr packages are public
+    # and the full umbrella reaches Ready (verified on kind + k3s). A red here blocks
+    # merge — it means the umbrella can no longer be stood up. See
+    # test/integration/README.md. (L2 stops short of a reconcile; proving a CalibanTask
+    # actually runs — which needs the caliband image — is Level 3, a separate job.)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
