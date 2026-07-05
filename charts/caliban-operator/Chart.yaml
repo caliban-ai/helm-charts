@@ -1,6 +1,6 @@
 apiVersion: v2
 name: caliban-operator
-description: caliban-operator (kube-rs) controller — part of the caliban-ai system
+description: caliban-operator (kube-rs) controller — reconciles CalibanTask into sandboxed caliband pods
 type: application
 version: 0.1.0
-appVersion: "0.0.0"
+appVersion: "0.1.0"

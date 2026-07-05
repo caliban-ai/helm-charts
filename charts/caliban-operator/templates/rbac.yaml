@@ -1,0 +1,72 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "caliban-operator.fullname" . }}
+  labels:
+    {{- include "caliban-operator.labels" . | nindent 4 }}
+rules:
+  # Watch and drive the CalibanTask CRs (the operator's primary resource).
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["calibantasks"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["calibantasks/status"]
+    verbs: ["get", "update", "patch"]
+  # Create/manage the agent-sandbox Sandboxes backing each task.
+  - apiGroups: ["agents.x-k8s.io"]
+    resources: ["sandboxes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Per-task least-privilege identity for the caliband pods.
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Per-task default-deny network isolation.
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "caliban-operator.fullname" . }}
+  labels:
+    {{- include "caliban-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "caliban-operator.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "caliban-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- if .Values.leaderElection.enabled }}
+---
+# Leader-election leases (namespaced): only when HA/leader election is enabled.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "caliban-operator.fullname" . }}-leader-election
+  labels:
+    {{- include "caliban-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "caliban-operator.fullname" . }}-leader-election
+  labels:
+    {{- include "caliban-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "caliban-operator.fullname" . }}-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "caliban-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

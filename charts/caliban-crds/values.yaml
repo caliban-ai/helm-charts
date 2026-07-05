@@ -1,0 +1,2 @@
+# caliban-crds ships only CRDs — there is nothing environment-specific to configure.
+# It is intentionally value-free; install it before the operator (its own step).
