@@ -62,3 +62,29 @@ jobs:
           done
       - name: level 1 integration test
         run: bash test/integration/level1.sh
+
+  deploy-gate:
+    # Level 2 deployability gate: installs the FULL umbrella (agent-sandbox +
+    # gonzalo + prospero + operator + CRDs) on k3s and waits for every workload to
+    # reach Ready. Green == the umbrella is safe to deploy to the k3s home cluster.
+    # NON-BLOCKING for now (continue-on-error) — the caliban-ai ghcr images must be
+    # anonymously pullable before this can pass. Drop continue-on-error to promote it
+    # to a required gate once it is reliably green. See test/integration/README.md.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - uses: azure/setup-kubectl@v4
+      - name: start k3s (no traefik/servicelb/metrics)
+        run: |
+          curl -sfL https://get.k3s.io | \
+            INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh -
+          echo "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> "$GITHUB_ENV"
+          until kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes 2>/dev/null | grep -q ' Ready'; do
+            sleep 2
+          done
+      - name: level 2 deployability gate
+        run: bash test/integration/level2.sh
