@@ -39,3 +39,26 @@ jobs:
           # (-ignore-missing-schemas) while still strictly validating everything else.
           echo "== kubeconform charts/caliban-crds (CRDs) =="
           helm template charts/caliban-crds | /tmp/kubeconform -strict -ignore-missing-schemas -summary -
+
+  integration:
+    # Level 1 live-cluster test: proves the charts APPLY to a real API server,
+    # the CalibanTask CRD round-trips, and the operator RBAC is sufficient.
+    # Needs no images and no registry secrets (never waits for pod Readiness).
+    # See test/integration/README.md for the full test-tier rationale.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - uses: azure/setup-kubectl@v4
+      - name: start k3s (no traefik/servicelb/metrics)
+        run: |
+          curl -sfL https://get.k3s.io | \
+            INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh -
+          echo "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> "$GITHUB_ENV"
+          until kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes 2>/dev/null | grep -q ' Ready'; do
+            sleep 2
+          done
+      - name: level 1 integration test
+        run: bash test/integration/level1.sh
