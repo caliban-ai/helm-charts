@@ -24,6 +24,7 @@ SANDBOX_NS=agent-sandbox-system
 CR=l1-valid   # metadata.name in calibantask-valid.yaml
 DEPLOY_TIMEOUT="${LEVEL3_DEPLOY_TIMEOUT:-6m}"
 RECONCILE_TIMEOUT="${LEVEL3_RECONCILE_TIMEOUT:-4m}"
+POD_TIMEOUT="${LEVEL3_POD_TIMEOUT:-3m}"
 
 log() { printf '\033[36m%s\033[0m\n' "$*"; }
 
@@ -82,18 +83,30 @@ if ! helm install "$REL" "$CHARTS/$REL" \
   exit 1
 fi
 
-# ── 2. apply a CalibanTask and ask the operator to reconcile it ──
-log "applying CalibanTask $CR and waiting up to $RECONCILE_TIMEOUT for status.phase=Running…"
+# ── 2. apply a CalibanTask and drive it to a genuinely running sandbox ──
+log "applying CalibanTask ${CR}…"
 kubectl apply -n "$NS" -f "$FIXTURES/calibantask-valid.yaml" >/dev/null
 
-if kubectl -n "$NS" wait --for=jsonpath='{.status.phase}'=Running \
-      --timeout="$RECONCILE_TIMEOUT" "calibantask/$CR" 2>/dev/null; then
-  log "✅ Level 3 PASS — CalibanTask reconciled to a running sandboxed pod"
+# 2a. the operator must reconcile it to phase=Running (i.e. it created the Sandbox).
+if ! kubectl -n "$NS" wait --for=jsonpath='{.status.phase}'=Running \
+       --timeout="$RECONCILE_TIMEOUT" "calibantask/$CR" 2>/dev/null; then
+  phase=$(kubectl -n "$NS" get calibantask "$CR" -o jsonpath='{.status.phase}' 2>/dev/null)
+  log "❌ Level 3 FAIL — CalibanTask never reached Running (last phase: ${phase:-<unset>})"
+  { dump; } | { [ -n "${GITHUB_STEP_SUMMARY:-}" ] && tee -a "$GITHUB_STEP_SUMMARY" || cat; }
+  exit 1
+fi
+
+# 2b. status.phase=Running is optimistic — the operator sets it when the Sandbox is
+#     created, before the pod is healthy. The real proof of a working task is that the
+#     backing sandbox pod reaches Ready (workspace cloned, caliband up).
+log "status.phase=Running; waiting up to $POD_TIMEOUT for sandbox pod ${CR}-sbx to be Ready…"
+if kubectl -n "$NS" wait --for=condition=Ready \
+      --timeout="$POD_TIMEOUT" "pod/${CR}-sbx" 2>/dev/null; then
+  log "✅ Level 3 PASS — CalibanTask reconciled and its sandbox pod is Ready"
   exit 0
 fi
 
-# ── 3. failure path: show where the reconcile stalled ──
-phase=$(kubectl -n "$NS" get calibantask "$CR" -o jsonpath='{.status.phase}' 2>/dev/null)
-log "❌ Level 3 FAIL — CalibanTask did not reach Running (last phase: ${phase:-<unset>})"
+# ── 3. failure path: reconcile advanced but the sandbox pod didn't come up ──
+log "❌ Level 3 FAIL — sandbox pod $CR-sbx did not reach Ready"
 { dump; } | { [ -n "${GITHUB_STEP_SUMMARY:-}" ] && tee -a "$GITHUB_STEP_SUMMARY" || cat; }
 exit 1

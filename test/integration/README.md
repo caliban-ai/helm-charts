@@ -14,7 +14,7 @@ gate** (see below); Level 3 is deferred:
 | **0** | Rendered YAML is schema-valid (`helm lint`, `kubeconform`) | no | no | ✅ required (`lint`) |
 | **1** | Charts **apply** to a real API server; `CalibanTask` round-trips its CRD schema; operator **RBAC is sufficient** | no | no | ✅ required (`integration`) |
 | **2** | Full umbrella (agent-sandbox + gonzalo + prospero + operator + CRDs) reaches **Ready** on k3s | yes (all **public**) | no | ✅ required (`deploy-gate`) |
-| **3** | Operator **reconciles** a `CalibanTask` → a running sandboxed caliband pod | yes | yes | ⚠️ non-blocking (`reconcile-gate`) |
+| **3** | Operator **reconciles** a `CalibanTask` → a running sandboxed caliband pod | yes (all **public**) | no | ✅ required (`reconcile-gate`) |
 
 ### Why Level 1 is the line
 
@@ -65,24 +65,24 @@ task actually runs (and that `ghcr.io/caliban-ai/caliban` is published) is **Lev
 ### Level 3 — the reconcile gate
 
 `level3.sh` brings the umbrella up (like L2), applies a `CalibanTask`, and asserts the
-operator reconciles it end-to-end — `CalibanTask.status.phase` reaches **Running** (via
-`kubectl wait --for=jsonpath`) within a timeout. On failure it dumps where the reconcile
-stalled: the CalibanTask status, the agent-sandbox `Sandbox` the operator should have
-created, the backing pod, and the **operator's own logs**. The `reconcile-gate` CI job
-is `continue-on-error` (non-blocking) until this goes green.
+operator reconciles it end-to-end in **two** stages: (1) `CalibanTask.status.phase`
+reaches **Running** (the operator created the `Sandbox`), then (2) the backing sandbox
+pod `<task>-sbx` reaches **Ready** — because `phase=Running` is optimistic (set when the
+Sandbox is created, before the pod is healthy), so the real proof of a working task is a
+Ready pod (workspace cloned, caliband up). On failure it dumps where the reconcile
+stalled: the CalibanTask status, the agent-sandbox `Sandbox`, the backing pod, and the
+**operator's own logs**.
 
-**Current status: red — and it found a real integration bug.** The blocker is *not* the
-(unpublished) caliband image; the reconcile dies before that. The operator tries to
-create a `Sandbox` (`agents.x-k8s.io/v1beta1`) whose spec sets
-`spec.volumeClaimTemplates[].apiVersion`, but the vendored **agent-sandbox v0.5.0** CRD
-schema doesn't declare that field, so the API server rejects the server-side-apply
-(`500: field not declared in schema`). This is an operator ↔ agent-sandbox **version
-mismatch** — exactly the kind of cross-component break that only a live reconcile can
-surface. It reproduces on **both** operator `0.1.0` and `latest`, so it's an operator
-code issue (or an agent-sandbox version pin), not a tag flip. The caliband image
-(`ghcr.io/caliban-ai/caliban:0.5.0`) is now published and public, so this schema
-mismatch is the **sole** remaining blocker. Promote to a required gate — drop
-`continue-on-error` — once the operator emits a `Sandbox` that agent-sandbox accepts.
+**Required gate.** Verified green end-to-end (kind + k3s) with `caliban-operator:0.1.1`
+and the caliband image: `CalibanTask → Sandbox → pod Ready`. A red here means the
+operator↔agent-sandbox reconcile path or the caliband image regressed.
+
+**What L3 caught during development.** With the earlier operator (`0.1.0`/`latest`) the
+reconcile failed the server-side apply — the operator emitted a `Sandbox` with
+`spec.volumeClaimTemplates[].apiVersion`, which agent-sandbox v0.5.0's schema rejects
+(`500: field not declared in schema`). That operator↔agent-sandbox mismatch — a
+cross-component break only a live reconcile can surface — was fixed in
+caliban-operator#7 and released as `v0.1.1`, which this chart now pins.
 
 ## How it works
 

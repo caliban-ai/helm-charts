@@ -91,14 +91,12 @@ jobs:
         run: bash test/integration/level2.sh
 
   reconcile-gate:
-    # Level 3 reconcile gate: brings the umbrella up, applies a CalibanTask, and
-    # asserts the operator reconciles it into a RUNNING sandboxed pod
-    # (CalibanTask.status.phase == Running). The deepest tier — depends on the operator
-    # reconcile path AND a published caliband image. NON-BLOCKING (continue-on-error);
-    # red by design until those land. Drop continue-on-error to promote once green.
-    # See test/integration/README.md.
+    # Level 3 reconcile gate (REQUIRED): brings the umbrella up, applies a CalibanTask,
+    # then asserts the operator reconciles it (status.phase=Running) AND the backing
+    # sandbox pod reaches Ready (workspace cloned, caliband up). The deepest tier — a
+    # red here means the operator↔agent-sandbox reconcile path or the caliband image
+    # regressed. See test/integration/README.md.
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
