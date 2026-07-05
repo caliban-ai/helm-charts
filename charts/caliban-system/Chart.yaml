@@ -9,6 +9,10 @@ dependencies:
     version: "0.1.0"
     repository: "file://../caliban-crds"
     condition: caliban-crds.enabled
+  - name: agent-sandbox
+    version: "0.1.0"
+    repository: "file://../agent-sandbox"
+    condition: agent-sandbox.enabled
   - name: gonzalo
     version: "0.1.0"
     repository: "file://../gonzalo"

@@ -1,0 +1,21 @@
+# VENDORED from kubernetes-sigs/agent-sandbox v0.5.0 (the upstream `helm/` chart),
+# with only batteries-included defaults added (image.tag, sane resources) so the
+# caliban-system umbrella can ship it default-on. Re-sync on version bump: copy
+# upstream `helm/` over charts/agent-sandbox/ and re-apply this header + the
+# defaults in values.yaml. Upstream: https://github.com/kubernetes-sigs/agent-sandbox
+apiVersion: v2
+name: agent-sandbox
+description: Kubernetes controller for managing agent sandboxes (vendored, kubernetes-sigs/agent-sandbox v0.5.0)
+type: application
+version: 0.1.0
+appVersion: "v0.5.0"
+keywords:
+  - agent
+  - sandbox
+  - kubernetes
+home: https://github.com/kubernetes-sigs/agent-sandbox
+sources:
+  - https://github.com/kubernetes-sigs/agent-sandbox
+maintainers:
+  - name: Kubernetes SIGs
+    url: https://github.com/kubernetes-sigs
