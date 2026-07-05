@@ -36,6 +36,15 @@ helm install caliban-system charts/caliban-system -f /path/to/private-values.yam
 A CI **leakage guard** (`scripts/check-no-cluster-leakage.sh`) fails the build if
 a cluster-specific identifier or private IP appears in `charts/`.
 
+## Testing
+
+Beyond `helm lint` + `kubeconform` (static, in the `lint` CI job), a **Level 1
+live-cluster test** (`integration` CI job, on k3s) proves the charts *apply* to a
+real API server, that a `CalibanTask` round-trips its CRD schema, and that the
+operator's RBAC is sufficient — with no container images and no registry secrets.
+See [`test/integration/README.md`](test/integration/README.md) for the test-tier
+rationale and how to run it locally.
+
 ## License
 
 AGPL-3.0-only.
