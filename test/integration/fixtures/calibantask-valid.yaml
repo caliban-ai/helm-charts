@@ -1,0 +1,14 @@
+# Minimal schema-valid CalibanTask: satisfies spec.task.prompt and
+# spec.workspace.sources[].{name,path,repo}. Generic values only.
+apiVersion: caliban.caliban-ai.dev/v1alpha1
+kind: CalibanTask
+metadata:
+  name: l1-valid
+spec:
+  task:
+    prompt: "hello from the level-1 integration test"
+  workspace:
+    sources:
+      - name: caliban
+        path: /work/caliban
+        repo: https://example.invalid/caliban.git
