@@ -5,3 +5,6 @@ charts/**/Chart.lock
 
 # private, per-operator chart deny-list (never commit)
 .chart-deny-extra
+
+# git worktrees for in-progress tickets (never commit)
+.claude/worktrees/
