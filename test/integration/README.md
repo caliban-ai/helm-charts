@@ -50,12 +50,12 @@ It uses **only public images** — no registry secrets, no private overlay. The
 red-wall unrelated PRs while readiness is being driven to green. Promote it to a
 required gate by dropping that line once it passes reliably.
 
-**Current status: red — by design, on a real blocker.** The caliban-ai ghcr images
-(`gonzalo`, `prospero`, `caliban-operator` at tag `0.1.0`) are not anonymously
-pullable: the pull fails with `401 Unauthorized` fetching an anonymous ghcr token.
-Making those packages public (or publishing public `0.1.0` tags) is the prerequisite
-for this gate to go green. agent-sandbox (`registry.k8s.io`) already pulls and reaches
-Ready.
+**Current status: green.** The `gonzalo`, `prospero`, and `caliban-operator` ghcr
+packages are public, and the full umbrella reaches Ready (verified on kind and k3s).
+The job is kept `continue-on-error` (non-blocking) as a soft launch; promote it to a
+required gate — drop that one line — once it has a few green CI runs. (History: it was
+initially red because those packages defaulted to **private** despite their source
+repos being public — ghcr package visibility is independent of repo visibility.)
 
 ### Why Level 3 stays deferred
 
