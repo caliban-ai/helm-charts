@@ -78,9 +78,11 @@ create a `Sandbox` (`agents.x-k8s.io/v1beta1`) whose spec sets
 schema doesn't declare that field, so the API server rejects the server-side-apply
 (`500: field not declared in schema`). This is an operator ↔ agent-sandbox **version
 mismatch** — exactly the kind of cross-component break that only a live reconcile can
-surface. Once that's resolved, the *next* blocker will be the caliband image
-(`ghcr.io/caliban-ai/caliban`, currently unpublished), which the sandbox pod needs to
-reach Running. Promote to a required gate — drop `continue-on-error` — once green.
+surface. It reproduces on **both** operator `0.1.0` and `latest`, so it's an operator
+code issue (or an agent-sandbox version pin), not a tag flip. The caliband image
+(`ghcr.io/caliban-ai/caliban:0.5.0`) is now published and public, so this schema
+mismatch is the **sole** remaining blocker. Promote to a required gate — drop
+`continue-on-error` — once the operator emits a `Sandbox` that agent-sandbox accepts.
 
 ## How it works
 
