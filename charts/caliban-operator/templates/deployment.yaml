@@ -1,0 +1,62 @@
+{{- if not .Values.image.repository }}
+{{- fail "image.repository must be set (e.g. ghcr.io/caliban-ai/caliban-operator)" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "caliban-operator.fullname" . }}
+  labels:
+    {{- include "caliban-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "caliban-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caliban-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "caliban-operator.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: operator
+          image: {{ include "caliban-operator.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: RUST_LOG
+              value: {{ .Values.logLevel | default "info" | quote }}
+            - name: CALIBAND_IMAGE
+              value: {{ .Values.env.calibandImage | quote }}
+            - name: CALIBAND_PORT
+              value: {{ .Values.env.calibandPort | quote }}
+            - name: CALIBAN_WORKSPACE_ROOT
+              value: {{ .Values.env.workspaceRoot | quote }}
+            - name: CALIBAN_WORKSPACE_STORAGE
+              value: {{ .Values.env.workspaceStorage | quote }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

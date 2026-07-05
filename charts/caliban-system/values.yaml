@@ -20,8 +20,14 @@ prospero:
   # topology defaults to "standalone" (sqlite + PVC, single replica). For HA,
   # set prospero.topology=clustered + prospero.database.existingSecret in your overlay.
 
-# The operator is not built yet — it arrives in P2 (agent-sandbox + CalibanTask).
-# Kept OFF so the umbrella deploys the ready tiers (gonzalo + prospero) today.
-# Flip to true once the caliban-operator chart is real.
+# CalibanTask CRD, installed as its own step. Enable together with the operator
+# (the operator is useless without its CRD). Kept OFF by default so the umbrella
+# deploys the ready tiers (gonzalo + prospero) without requiring the operator stack.
+caliban-crds:
+  enabled: false
+
+# The caliban-operator chart is now real (reconciles CalibanTask → sandboxed
+# caliband pods). Kept OFF by default until agent-sandbox is bundled (helm-charts#6)
+# and the operator image is published — enabling it also requires caliban-crds.enabled=true.
 caliban-operator:
   enabled: false

@@ -19,7 +19,7 @@ jobs:
         run: bash scripts/check-no-cluster-leakage.sh
       - name: helm lint (leaf charts)
         run: |
-          for c in charts/gonzalo charts/prospero charts/caliban-operator; do
+          for c in charts/caliban-crds charts/gonzalo charts/prospero charts/caliban-operator; do
             echo "== lint $c =="; helm lint "$c"
           done
       - name: helm lint (umbrella)
@@ -34,3 +34,8 @@ jobs:
             echo "== kubeconform $c =="
             helm template "$c" | /tmp/kubeconform -strict -summary -
           done
+          # CRD chart: kubeconform's default schema set has no meta-schema for the
+          # CustomResourceDefinition kind itself, so allow that one to be skipped
+          # (-ignore-missing-schemas) while still strictly validating everything else.
+          echo "== kubeconform charts/caliban-crds (CRDs) =="
+          helm template charts/caliban-crds | /tmp/kubeconform -strict -ignore-missing-schemas -summary -

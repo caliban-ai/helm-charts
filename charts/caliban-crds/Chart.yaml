@@ -1,0 +1,6 @@
+apiVersion: v2
+name: caliban-crds
+description: CustomResourceDefinitions for the caliban-ai operator (CalibanTask) — installed as their own step
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

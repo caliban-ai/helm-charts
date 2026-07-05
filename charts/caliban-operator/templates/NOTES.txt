@@ -1,1 +1,21 @@
-caliban-operator chart (skeleton). Templates land in the per-app content ticket.
+caliban-operator installed as {{ include "caliban-operator.fullname" . }}.
+
+The operator watches CalibanTask resources cluster-wide and reconciles each into a
+sandboxed caliband pod (an agent-sandbox Sandbox) with a per-task ServiceAccount
+and a default-deny NetworkPolicy.
+
+Prerequisites (must already be installed in the cluster):
+  1. The CalibanTask CRD — install the caliban-crds chart first (its own step).
+  2. agent-sandbox (the agents.x-k8s.io/v1beta1 Sandbox CRD + controller).
+
+Check the operator is running:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "caliban-operator.fullname" . }}
+
+Then apply a CalibanTask and watch it reconcile:
+  kubectl apply -f my-calibantask.yaml
+  kubectl get calibantasks -A
+{{- if not .Values.rbac.create }}
+
+WARNING: rbac.create=false — you must provide the operator's ClusterRole/binding
+out-of-band, or reconciliation will fail with RBAC forbidden errors.
+{{- end }}

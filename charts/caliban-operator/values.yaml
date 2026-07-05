@@ -1,21 +1,50 @@
 # Generic, cluster-agnostic defaults ONLY.
-# Supply environment-specific values (hostnames, storageClass, ingress, secrets)
-# via a SEPARATE PRIVATE overlay at deploy time:  helm install ... -f private-values.yaml
+# The operator is a controller (no inbound Service/Ingress); it watches CalibanTask
+# CRs cluster-wide and creates Sandboxes/ServiceAccounts/NetworkPolicies.
+# Supply environment-specific values via a SEPARATE PRIVATE overlay at deploy time:
+#   helm install ... -f private-values.yaml
+
 replicaCount: 1
+
 image:
-  repository: ""          # e.g. ghcr.io/caliban-ai/caliban-operator (set at deploy time)
+  repository: ghcr.io/caliban-ai/caliban-operator   # public image; overridable at deploy time
   tag: ""                 # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
-service:
-  type: ClusterIP
-  port: 8443
-resources: {}
-persistence:
+
+# Private-registry pull secrets (names of pre-existing Secrets), supplied via overlay.
+imagePullSecrets: []
+
+serviceAccount:
+  # Create the operator's ServiceAccount (the identity the ClusterRole binds to).
+  create: true
+  # Override the generated SA name (defaults to the chart fullname).
+  name: ""
+
+rbac:
+  # Create the ClusterRole + ClusterRoleBinding the operator needs to watch
+  # CalibanTasks and create Sandboxes/ServiceAccounts/NetworkPolicies. Required
+  # for the operator to function; disable only to manage RBAC out-of-band.
+  create: true
+
+leaderElection:
+  # Leader-election leases RBAC (namespaced Role/RoleBinding). OFF by default —
+  # the current operator runs a single replica and does not yet elect a leader.
+  # Enable together with replicaCount > 1 once the operator supports HA.
   enabled: false
-  storageClass: ""        # "" = cluster default
-  size: 1Gi
-ingress:
-  enabled: false          # off by default; no baked hostnames
+
+# Environment the operator injects into the caliband pods it creates. These map to
+# the operator's Settings (see caliban-operator ADR 0002). Neutral defaults only.
+env:
+  # CALIBAND_IMAGE: the caliband container image the operator runs in each Sandbox.
+  calibandImage: "ghcr.io/caliban-ai/caliban:latest"
+  # CALIBAND_PORT: TCP+TLS port caliband listens on inside the pod.
+  calibandPort: "8443"
+  # CALIBAN_WORKSPACE_ROOT: workspace mount path in the pod.
+  workspaceRoot: "/work"
+  # CALIBAN_WORKSPACE_STORAGE: requested size of each task's workspace PVC.
+  workspaceStorage: "10Gi"
+
+resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
