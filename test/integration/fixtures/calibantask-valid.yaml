@@ -1,14 +1,17 @@
 # Minimal schema-valid CalibanTask: satisfies spec.task.prompt and
-# spec.workspace.sources[].{name,path,repo}. Generic values only.
+# spec.workspace.sources[].{name,path,repo}. Used by both the L1 CRD round-trip
+# (schema only) and the L3 reconcile gate (which actually clones the source), so
+# the repo is a small, stable, public one that clones without auth.
 apiVersion: caliban.caliban-ai.dev/v1alpha1
 kind: CalibanTask
 metadata:
   name: l1-valid
 spec:
   task:
-    prompt: "hello from the level-1 integration test"
+    prompt: "hello from the caliban integration tests"
   workspace:
     sources:
-      - name: caliban
-        path: /work/caliban
-        repo: https://example.invalid/caliban.git
+      - name: hello
+        path: /work/hello
+        repo: https://github.com/octocat/Hello-World.git
+        ref: master   # Hello-World's default branch (CRD defaults ref to "main")
