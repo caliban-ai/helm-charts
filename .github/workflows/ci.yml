@@ -89,3 +89,29 @@ jobs:
           done
       - name: level 2 deployability gate
         run: bash test/integration/level2.sh
+
+  reconcile-gate:
+    # Level 3 reconcile gate: brings the umbrella up, applies a CalibanTask, and
+    # asserts the operator reconciles it into a RUNNING sandboxed pod
+    # (CalibanTask.status.phase == Running). The deepest tier — depends on the operator
+    # reconcile path AND a published caliband image. NON-BLOCKING (continue-on-error);
+    # red by design until those land. Drop continue-on-error to promote once green.
+    # See test/integration/README.md.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - uses: azure/setup-kubectl@v4
+      - name: start k3s (no traefik/servicelb/metrics)
+        run: |
+          curl -sfL https://get.k3s.io | \
+            INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh -
+          echo "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> "$GITHUB_ENV"
+          until kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes 2>/dev/null | grep -q ' Ready'; do
+            sleep 2
+          done
+      - name: level 3 reconcile gate
+        run: bash test/integration/level3.sh
