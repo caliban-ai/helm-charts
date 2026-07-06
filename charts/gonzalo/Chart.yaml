@@ -3,4 +3,4 @@ name: gonzalo
 description: Gonzalo persistence daemon (gonzalod) — part of the caliban-ai system
 type: application
 version: 0.1.0
-appVersion: "0.1.0"
+appVersion: "0.2.0"
