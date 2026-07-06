@@ -16,11 +16,20 @@
 #     --docker-server=ghcr.io --docker-username=<gh-user> --docker-password=<read:packages PAT>
 # then reference it per-app with imagePullSecrets (shown below).
 
+# --- Storage durability ---
+# gonzalo and prospero keep state on a PVC. If storageClass is unset, most clusters
+# fall back to a NODE-LOCAL default (e.g. k3s "local-path", kind "standard"): the
+# volume lives on one node, so if that node fails and the pod reschedules elsewhere it
+# gets a FRESH, EMPTY volume — the prior data is stranded/lost. For anything you want
+# to survive a node going away, set storageClass to a SHARED/networked class backed by
+# a CSI driver (e.g. NFS via csi-driver-nfs, SMB via csi-driver-smb, Ceph/Longhorn).
+
 gonzalo:
   enabled: true
   imagePullSecrets: []      # private images: [{ name: ghcr-pull }]
   persistence:
-    storageClass: ""        # your cluster's storage class; "" = cluster default (e.g. "standard", "local-path")
+    storageClass: ""        # "" = cluster default (node-local — see "Storage durability" above);
+                            # set a shared class (e.g. "nfs-csi") for node-failure durability
     size: 5Gi
   resources:
     requests: { cpu: 100m, memory: 128Mi }
@@ -31,7 +40,7 @@ prospero:
   imagePullSecrets: []      # private images: [{ name: ghcr-pull }]
   topology: standalone      # single-node sqlite+PVC. Use "clustered" for HA (see below).
   persistence:
-    storageClass: ""
+    storageClass: ""        # "" = cluster default (node-local); shared class for durability
     size: 2Gi
   resources:
     requests: { cpu: 100m, memory: 128Mi }
