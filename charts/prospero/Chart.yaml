@@ -3,4 +3,4 @@ name: prospero
 description: Prospero control plane (prosperod) + dashboard — part of the caliban-ai system
 type: application
 version: 0.1.0
-appVersion: "0.1.0"
+appVersion: "0.1.1"   # prosperod built --features k8s (needed for fleetBackend=k8s)

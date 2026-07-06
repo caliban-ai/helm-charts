@@ -27,11 +27,12 @@ selected by `topology`:
 |-----|---------|-------|
 | `topology` | `standalone` | `standalone` \| `clustered` (anything else fails fast) |
 | `replicaCount` | `1` | clustered only |
-| `image.repository` | `""` | required at install time, e.g. `ghcr.io/caliban-ai/prospero` |
+| `image.repository` | `ghcr.io/caliban-ai/prospero` | the public image; override to pin a fork/mirror |
 | `image.tag` | `""` | defaults to `.Chart.AppVersion` when unset |
 | `image.pullPolicy` | `IfNotPresent` | |
 | `service.port` | `7878` | REST/SSE/dashboard |
-| `host` | `local` | `PROSPERO_HOST` fleet identity |
+| `host` | `local` | `PROSPERO_HOST` fleet *identity* (not the backend — see `fleetBackend`) |
+| `fleetBackend` | `local` | `local` (caliband over Unix — empty in a container) \| `k8s` (reads `CalibanTask` CRs in this namespace so the dashboard shows the operator's agents; needs image ≥ 0.1.1 and adds a Role over `calibantasks`) |
 | `persistence.storageClass` | `""` | standalone only; `""` = cluster default. No toggle — the PVC always exists |
 | `persistence.size` | `1Gi` | standalone only |
 | `persistence.accessMode` | `ReadWriteOnce` | standalone only |

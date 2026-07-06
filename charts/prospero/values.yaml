@@ -14,8 +14,16 @@ imagePullSecrets: []       # e.g. [{ name: ghcr-pull }] when pulling private ima
 service:
   type: ClusterIP
   port: 7878               # prosperod REST/SSE/dashboard (corrected from 8088)
-host: local                # PROSPERO_HOST fleet identity
+host: local                # PROSPERO_HOST fleet identity (NOT the backend — see fleetBackend)
 autostart: false           # false ⇒ pass --no-autostart (no caliband in this image)
+
+# Fleet control-plane backend:
+#   local — manages caliband over Unix sockets (empty in a container; the default).
+#   k8s   — K8sFleet: reads/drives CalibanTask CRs in this namespace so the dashboard
+#           shows the operator's agents. Requires a prosperod image built with the
+#           k8s feature (>= 0.1.1) and creates a Role granting this chart's
+#           ServiceAccount access to calibantasks (below).
+fleetBackend: local
 persistence:               # standalone only (no toggle: the StatefulSet's PVC is always required)
   storageClass: ""         # "" = cluster default
   size: 1Gi
