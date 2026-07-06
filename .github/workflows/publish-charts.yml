@@ -1,0 +1,48 @@
+name: publish-charts
+# Package every chart and push it to the OCI registry oci://ghcr.io/caliban-ai/charts
+# so downstream repos can declare Helm `dependencies` on them. The umbrella is
+# packaged with its file:// subcharts vendored in, so the published artifact renders
+# standalone (no cross-repo file:// problem for consumers).
+#
+# NOTE: on first publish the ghcr packages default to PRIVATE — flip each to public
+# once (Org → Packages → charts/<name> → visibility) for anonymous `helm pull`.
+on:
+  push:
+    branches: [main]
+    paths: ["charts/**"]
+  workflow_dispatch:
+concurrency:
+  group: publish-charts-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  packages: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      DEST: oci://ghcr.io/caliban-ai/charts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - name: helm registry login (ghcr)
+        run: helm registry login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
+      - name: package + push charts
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pkg
+          # Leaf charts have no dependencies — package directly.
+          for c in caliban-crds agent-sandbox gonzalo prospero caliban-operator; do
+            echo "== package $c =="
+            helm package "charts/$c" -d /tmp/pkg
+          done
+          # Umbrella: vendor the file:// subcharts into the package so it's self-contained.
+          echo "== package caliban-system (deps vendored) =="
+          helm dependency update charts/caliban-system
+          helm package charts/caliban-system -d /tmp/pkg
+          for tgz in /tmp/pkg/*.tgz; do
+            echo "== push $(basename "$tgz") =="
+            helm push "$tgz" "$DEST"
+          done
