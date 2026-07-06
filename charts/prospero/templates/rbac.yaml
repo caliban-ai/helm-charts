@@ -1,0 +1,35 @@
+{{- if eq .Values.fleetBackend "k8s" }}
+# The K8sFleet backend (fleetBackend=k8s) reads and drives CalibanTask CRs in this
+# namespace via prosperod's in-cluster ServiceAccount token. Namespaced Role — the
+# backend is scoped to PROSPERO_K8S_NAMESPACE (= this release's namespace).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "prospero.fullname" . }}-fleet
+  labels:
+    {{- include "prospero.labels" . | nindent 4 }}
+rules:
+  # list/watch → live fleet snapshot; get/create/update/patch (server-side apply)
+  # /delete → create and manage tasks (restart/drain delete the CR).
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["calibantasks"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["calibantasks/status"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "prospero.fullname" . }}-fleet
+  labels:
+    {{- include "prospero.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "prospero.fullname" . }}-fleet
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "prospero.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
