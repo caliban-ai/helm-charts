@@ -4,7 +4,7 @@
 replicaCount: 1            # fs substrate = single writer; HA (multi-replica over
                            # an object store) is a follow-on — see chart README.
 image:
-  repository: ""           # e.g. ghcr.io/caliban-ai/gonzalo (set at deploy time)
+  repository: ghcr.io/caliban-ai/gonzalo   # public image; override at deploy time
   tag: ""                  # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
 imagePullSecrets: []       # e.g. [{ name: ghcr-pull }] when pulling private images
