@@ -7,7 +7,7 @@
 topology: standalone
 replicaCount: 1            # used in clustered mode
 image:
-  repository: ""           # e.g. ghcr.io/caliban-ai/prospero (set at deploy time)
+  repository: ghcr.io/caliban-ai/prospero   # public image; override at deploy time
   tag: ""                  # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
 imagePullSecrets: []       # e.g. [{ name: ghcr-pull }] when pulling private images
