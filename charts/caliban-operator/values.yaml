@@ -36,7 +36,7 @@ leaderElection:
 # the operator's Settings (see caliban-operator ADR 0002). Neutral defaults only.
 env:
   # CALIBAND_IMAGE: the caliband container image the operator runs in each Sandbox.
-  calibandImage: "ghcr.io/caliban-ai/caliban:latest"
+  calibandImage: "ghcr.io/caliban-ai/caliban:0.5.0"
   # CALIBAND_PORT: TCP+TLS port caliband listens on inside the pod.
   calibandPort: "8443"
   # CALIBAN_WORKSPACE_ROOT: workspace mount path in the pod.
