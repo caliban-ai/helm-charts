@@ -1,0 +1,19 @@
+# Minimal schema-valid Workspace: one source + one keyless (ollama) provider.
+# Keyless means no credentialsRef, so the operator's Workspace controller
+# validates it to Ready with NO Secret required (Level 3's CalibanTask references
+# it, and the operator resolves+pins it before cloning the source). The source is
+# a small, stable, public repo that clones without auth (Level 3 actually clones).
+apiVersion: caliban.caliban-ai.dev/v1alpha1
+kind: Workspace
+metadata:
+  name: l1-valid-ws
+spec:
+  displayName: L1 integration workspace
+  sources:
+    - name: hello
+      path: /work/hello
+      repo: https://github.com/octocat/Hello-World.git
+      ref: master   # Hello-World's default branch (CRD defaults ref to "main")
+  providers:
+    - name: local
+      kind: ollama   # keyless — no credentialsRef, so the Workspace needs no Secret

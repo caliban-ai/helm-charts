@@ -26,8 +26,12 @@ helm install caliban-operator .                       # then the operator
 
 The chart creates a `ServiceAccount` and a `ClusterRole`/`ClusterRoleBinding`
 granting the operator exactly what it needs: `get/list/watch/update/patch` on
-`calibantasks` (+ `calibantasks/status`), and full management of `sandboxes`
-(`agents.x-k8s.io`), `serviceaccounts`, and `networkpolicies`. Leader-election
+`calibantasks` (+ `calibantasks/status`); `get/list/watch` on `workspaces` (+
+status write, to resolve `workspaceRef` and report readiness — it never
+creates/deletes Workspaces); `get` on `secrets` (validating provider
+`credentialsRef` existence — the operator is the **only** component with Secret
+read access); and full management of `sandboxes` (`agents.x-k8s.io`),
+`serviceaccounts`, and `networkpolicies`. Leader-election
 leases RBAC is available but **off by default** (`leaderElection.enabled`); the
 operator runs a single replica today. The caliband pods the operator creates get
 their own token-less per-task ServiceAccount with **no** bound Role.

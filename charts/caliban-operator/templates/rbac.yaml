@@ -13,6 +13,21 @@ rules:
   - apiGroups: ["caliban.caliban-ai.dev"]
     resources: ["calibantasks/status"]
     verbs: ["get", "update", "patch"]
+  # Watch Workspace CRs (resolve CalibanTask.workspaceRef) and write their status
+  # (the Workspace controller validates + reports readiness). The operator reads
+  # and status-patches Workspaces; it never creates/deletes them (prospero does).
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["workspaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["workspaces/status"]
+    verbs: ["get", "update", "patch"]
+  # Read Secrets referenced by Workspace providers' credentialsRef — existence
+  # validation only. The operator is the ONLY component with Secret read access
+  # (prospero references Secrets by name but never reads them).
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
   # Create/manage the agent-sandbox Sandboxes backing each task.
   - apiGroups: ["agents.x-k8s.io"]
     resources: ["sandboxes"]
