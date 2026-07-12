@@ -24,6 +24,15 @@ autostart: false           # false ⇒ pass --no-autostart (no caliband in this 
 #           k8s feature (>= 0.1.1) and creates a Role granting this chart's
 #           ServiceAccount access to calibantasks (below).
 fleetBackend: local
+
+# Under fleetBackend=k8s, prospero is the editor of Workspace CRs. By default it
+# gets NO Secret access (it references credential Secrets by name; the operator
+# is the only Secret reader). Enable this ONLY to let the dashboard offer a
+# credentialsRef name-picker — it grants prospero `list` on Secrets (names only,
+# never values). Off by default to keep prospero off credential RBAC.
+secretPicker:
+  enabled: false
+
 persistence:               # standalone only (no toggle: the StatefulSet's PVC is always required)
   storageClass: ""         # "" = cluster default
   size: 1Gi

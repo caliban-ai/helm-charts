@@ -17,6 +17,24 @@ rules:
   - apiGroups: ["caliban.caliban-ai.dev"]
     resources: ["calibantasks/status"]
     verbs: ["get"]
+  # Prospero is the editor of Workspace CRs (the k8s config plane): add/remove
+  # workspaces and edit their sources/providers/config. It reads Workspace status
+  # to show reconciliation state. It references credential Secrets by name but has
+  # NO secrets access — the operator is the only Secret reader.
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["workspaces"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["caliban.caliban-ai.dev"]
+    resources: ["workspaces/status"]
+    verbs: ["get"]
+  {{- if .Values.secretPicker.enabled }}
+  # Optional (default-off): list Secret names so the dashboard can offer a
+  # credentialsRef picker. Grants LIST only — never get/read of Secret values.
+  # Keep off to hold prospero fully off credential RBAC (least privilege).
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["list"]
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

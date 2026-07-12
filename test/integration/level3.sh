@@ -31,6 +31,7 @@ log() { printf '\033[36m%s\033[0m\n' "$*"; }
 cleanup() {
   log "── cleanup ──"
   kubectl -n "$NS" delete -f "$FIXTURES/calibantask-valid.yaml" --ignore-not-found >/dev/null 2>&1 || true
+  kubectl -n "$NS" delete -f "$FIXTURES/workspace-valid.yaml" --ignore-not-found >/dev/null 2>&1 || true
   helm uninstall "$REL" -n "$NS" --ignore-not-found >/dev/null 2>&1 || true
   kubectl delete ns "$NS" "$SANDBOX_NS" --wait=false --ignore-not-found >/dev/null 2>&1 || true
 }
@@ -40,6 +41,10 @@ dump() {
   echo "### ❌ Level 3 gate FAILED — CalibanTask did not reconcile to Running"
   echo
   echo '```'
+  echo "== Workspace $NS/l1-valid-ws (status) =="
+  kubectl -n "$NS" get workspace l1-valid-ws \
+    -o jsonpath='  phase=[{.status.phase}]{"\n"}  message={.status.message}{"\n"}' 2>&1
+  echo
   echo "== CalibanTask $NS/$CR (status) =="
   kubectl -n "$NS" get calibantask "$CR" \
     -o jsonpath='  phase=[{.status.phase}]{"\n"}  conditions={.status.conditions}{"\n"}' 2>&1
@@ -83,7 +88,20 @@ if ! helm install "$REL" "$CHARTS/$REL" \
   exit 1
 fi
 
-# ── 2. apply a CalibanTask and drive it to a genuinely running sandbox ──
+# ── 2. apply the Workspace, then a CalibanTask, and drive it to a running sandbox ──
+# The operator resolves CalibanTask.workspaceRef and gates the pin on the
+# Workspace being Ready (its controller validates sources/providers first), so the
+# Workspace must exist and reconcile Ready before the task can pin + create a Sandbox.
+log "applying Workspace l1-valid-ws and waiting for it to reconcile Ready…"
+kubectl apply -n "$NS" -f "$FIXTURES/workspace-valid.yaml" >/dev/null
+if ! kubectl -n "$NS" wait --for=jsonpath='{.status.phase}'=Ready \
+       --timeout=60s workspace/l1-valid-ws 2>/dev/null; then
+  wphase=$(kubectl -n "$NS" get workspace l1-valid-ws -o jsonpath='{.status.phase}' 2>/dev/null)
+  log "❌ Level 3 FAIL — Workspace never reached Ready (last phase: ${wphase:-<unset>})"
+  { dump; } | { [ -n "${GITHUB_STEP_SUMMARY:-}" ] && tee -a "$GITHUB_STEP_SUMMARY" || cat; }
+  exit 1
+fi
+
 log "applying CalibanTask ${CR}…"
 kubectl apply -n "$NS" -f "$FIXTURES/calibantask-valid.yaml" >/dev/null
 

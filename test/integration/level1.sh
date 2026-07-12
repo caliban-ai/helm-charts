@@ -12,6 +12,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CHARTS="$ROOT/charts"
 FIXTURES="$ROOT/test/integration/fixtures"
 CRD="calibantasks.caliban.caliban-ai.dev"
+WORKSPACE_CRD="workspaces.caliban.caliban-ai.dev"
 
 PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); printf '\033[32m  ✓ %s\033[0m\n' "$*"; }
@@ -24,7 +25,7 @@ cleanup() {
   for r in gonzalo prospero op crds sys crdonly oponly; do
     for ns in "${NS[@]}"; do helm uninstall "$r" -n "$ns" --ignore-not-found >/dev/null 2>&1 || true; done
   done
-  kubectl delete crd "$CRD" --ignore-not-found >/dev/null 2>&1 || true
+  kubectl delete crd "$CRD" "$WORKSPACE_CRD" --ignore-not-found >/dev/null 2>&1 || true
   for ns in "${NS[@]}"; do kubectl delete ns "$ns" --wait=false --ignore-not-found >/dev/null 2>&1 || true; done
 }
 trap cleanup EXIT
@@ -44,7 +45,7 @@ smoke() { # release chart ns [extra helm args...]
   # The CalibanTask CRD has a FIXED cluster-scoped name across all releases, so it
   # is the one object that collides on the next install. Helm's uninstall teardown
   # of it is async/version-dependent — purge it deterministically before moving on.
-  kubectl delete crd "$CRD" --ignore-not-found --wait >/dev/null 2>&1 || true
+  kubectl delete crd "$CRD" "$WORKSPACE_CRD" --ignore-not-found --wait >/dev/null 2>&1 || true
 }
 smoke gonzalo  gonzalo          caliban-l1-gonzalo
 smoke prospero prospero         caliban-l1-prospero
@@ -118,12 +119,19 @@ deny() {  # group resource verb — negative control, expect denied
 }
 for v in get list watch update patch; do allow caliban.caliban-ai.dev calibantasks "$v"; done
 for v in get update patch; do allow caliban.caliban-ai.dev calibantasks "$v" status; done
+# Workspace: the operator resolves CalibanTask.workspaceRef (get/list/watch) and
+# writes Workspace status (validation/readiness) — but never creates/deletes them.
+for v in get list watch; do allow caliban.caliban-ai.dev workspaces "$v"; done
+for v in get update patch; do allow caliban.caliban-ai.dev workspaces "$v" status; done
 for v in get list watch create update patch delete; do allow agents.x-k8s.io sandboxes "$v"; done
 for v in get list watch create update patch delete; do allow "" serviceaccounts "$v"; done
 for v in get list watch create update patch delete; do allow networking.k8s.io networkpolicies "$v"; done
+allow "" secrets get                              # reads credentialsRef Secrets (existence check) — sole Secret reader
 deny caliban.caliban-ai.dev calibantasks delete   # operator has no delete on its own CR
+deny caliban.caliban-ai.dev workspaces create     # prospero owns Workspace CRUD, not the operator
+deny caliban.caliban-ai.dev workspaces delete     # ditto
 deny "" pods create                               # operator makes Sandboxes, never pods directly
-deny "" secrets get                               # operator has no secrets access
+deny "" secrets list                              # gets credentialsRef Secrets by name only, never lists
 helm uninstall oponly -n caliban-l1-rbac >/dev/null 2>&1 || true
 
 echo "──────────────────────────────"

@@ -1,17 +1,13 @@
-# Minimal schema-valid CalibanTask: satisfies spec.task.prompt and
-# spec.workspace.sources[].{name,path,repo}. Used by both the L1 CRD round-trip
-# (schema only) and the L3 reconcile gate (which actually clones the source), so
-# the repo is a small, stable, public one that clones without auth.
+# Minimal schema-valid CalibanTask (post-#11 schema): references a Workspace by
+# name (workspace-valid.yaml → l1-valid-ws) and carries the required task.prompt.
+# Used by the L1 CRD round-trip (schema only) and the L3 reconcile gate (which
+# applies the Workspace first, then this, and drives it to a running sandbox).
 apiVersion: caliban.caliban-ai.dev/v1alpha1
 kind: CalibanTask
 metadata:
   name: l1-valid
 spec:
+  workspaceRef:
+    name: l1-valid-ws
   task:
     prompt: "hello from the caliban integration tests"
-  workspace:
-    sources:
-      - name: hello
-        path: /work/hello
-        repo: https://github.com/octocat/Hello-World.git
-        ref: master   # Hello-World's default branch (CRD defaults ref to "main")
