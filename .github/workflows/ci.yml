@@ -54,8 +54,14 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: start k3s (no traefik/servicelb/metrics)
         run: |
-          curl -sfL --retry 5 --retry-all-errors --retry-delay 3 https://get.k3s.io | \
-            INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh -
+          # get.k3s.io + the installer's internal github.com downloads intermittently
+          # hit a self-signed cert on some runners; retry the whole install.
+          for attempt in 1 2 3 4 5; do
+            curl -sfL https://get.k3s.io | \
+              INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh - && break
+            echo "k3s install attempt $attempt failed; retrying in 5s"; sleep 5
+          done
+          test -f /etc/rancher/k3s/k3s.yaml || { echo "k3s install failed after retries"; exit 1; }
           echo "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> "$GITHUB_ENV"
           until kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes 2>/dev/null | grep -q ' Ready'; do
             sleep 2
@@ -81,8 +87,14 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: start k3s (no traefik/servicelb/metrics)
         run: |
-          curl -sfL --retry 5 --retry-all-errors --retry-delay 3 https://get.k3s.io | \
-            INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh -
+          # get.k3s.io + the installer's internal github.com downloads intermittently
+          # hit a self-signed cert on some runners; retry the whole install.
+          for attempt in 1 2 3 4 5; do
+            curl -sfL https://get.k3s.io | \
+              INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh - && break
+            echo "k3s install attempt $attempt failed; retrying in 5s"; sleep 5
+          done
+          test -f /etc/rancher/k3s/k3s.yaml || { echo "k3s install failed after retries"; exit 1; }
           echo "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> "$GITHUB_ENV"
           until kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes 2>/dev/null | grep -q ' Ready'; do
             sleep 2
@@ -105,8 +117,14 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: start k3s (no traefik/servicelb/metrics)
         run: |
-          curl -sfL --retry 5 --retry-all-errors --retry-delay 3 https://get.k3s.io | \
-            INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh -
+          # get.k3s.io + the installer's internal github.com downloads intermittently
+          # hit a self-signed cert on some runners; retry the whole install.
+          for attempt in 1 2 3 4 5; do
+            curl -sfL https://get.k3s.io | \
+              INSTALL_K3S_EXEC="--disable=traefik --disable=servicelb --disable=metrics-server --write-kubeconfig-mode=644" sh - && break
+            echo "k3s install attempt $attempt failed; retrying in 5s"; sleep 5
+          done
+          test -f /etc/rancher/k3s/k3s.yaml || { echo "k3s install failed after retries"; exit 1; }
           echo "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> "$GITHUB_ENV"
           until kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes 2>/dev/null | grep -q ' Ready'; do
             sleep 2
