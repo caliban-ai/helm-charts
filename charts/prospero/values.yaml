@@ -33,6 +33,14 @@ fleetBackend: local
 secretPicker:
   enabled: false
 
+# k8s fleet session-plane dial credentials (mounted from the shared Secrets).
+# Consumed only when fleetBackend == "k8s".
+sessionPlane:
+  tlsSecret: caliban-session-plane-tls
+  tokenSecret: caliban-session-plane-token
+  tokenKey: token
+  serverName: caliband
+
 persistence:               # standalone only (no toggle: the StatefulSet's PVC is always required)
   storageClass: ""         # "" = cluster default
   size: 1Gi

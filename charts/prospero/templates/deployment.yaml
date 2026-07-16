@@ -36,12 +36,24 @@ spec:
             - "0.0.0.0:{{ .Values.service.port }}"
             - --host
             - {{ .Values.host | quote }}
+            - --fleet-backend
+            - {{ .Values.fleetBackend | quote }}
             - --lease-ttl-secs
             - {{ .Values.leaseTtlSecs | quote }}
             {{- if not .Values.autostart }}
             - --no-autostart
             {{- end }}
           env:
+            {{- if eq .Values.fleetBackend "k8s" }}
+            - name: PROSPERO_K8S_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: PROSPERO_K8S_CALIBAND_CA_FILE
+              value: /etc/prospero/session-tls/ca.crt
+            - name: PROSPERO_K8S_CALIBAND_TOKEN_FILE
+              value: /etc/prospero/session-token/{{ .Values.sessionPlane.tokenKey }}
+            - name: PROSPERO_K8S_CALIBAND_SERVER_NAME
+              value: {{ .Values.sessionPlane.serverName | quote }}
+            {{- end }}
             - name: PROSPERO_REPLICA_ID
               valueFrom:
                 fieldRef:
@@ -70,8 +82,26 @@ spec:
               port: http
             initialDelaySeconds: 2
             periodSeconds: 5
+          {{- if eq .Values.fleetBackend "k8s" }}
+          volumeMounts:
+            - name: session-tls
+              mountPath: /etc/prospero/session-tls
+              readOnly: true
+            - name: session-token
+              mountPath: /etc/prospero/session-token
+              readOnly: true
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if eq .Values.fleetBackend "k8s" }}
+      volumes:
+        - name: session-tls
+          secret:
+            secretName: {{ .Values.sessionPlane.tlsSecret }}
+        - name: session-token
+          secret:
+            secretName: {{ .Values.sessionPlane.tokenSecret }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
