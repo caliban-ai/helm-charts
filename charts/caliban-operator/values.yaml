@@ -43,6 +43,9 @@ env:
   workspaceRoot: "/work"
   # CALIBAN_WORKSPACE_STORAGE: requested size of each task's workspace PVC.
   workspaceStorage: "10Gi"
+  sessionTlsSecret: caliban-session-plane-tls
+  sessionTokenSecret: caliban-session-plane-token
+  sessionTokenKey: token
 
 resources: {}
 nodeSelector: {}
