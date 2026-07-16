@@ -1,0 +1,72 @@
+{{- if .Values.sessionPlane.enabled }}
+# --- Bearer token (generated once, preserved across upgrades) ---
+{{- $tokenSecretName := .Values.sessionPlane.tokenSecret }}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace $tokenSecretName }}
+{{- $token := "" }}
+{{- if and $existing $existing.data (index $existing.data .Values.sessionPlane.tokenKey) }}
+{{- $token = index $existing.data .Values.sessionPlane.tokenKey | b64dec }}
+{{- else }}
+{{- $token = randAlphaNum 48 }}
+{{- end }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $tokenSecretName }}
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+stringData:
+  {{ .Values.sessionPlane.tokenKey }}: {{ $token | quote }}
+---
+# --- Self-signed root issuer ---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: caliban-session-plane-selfsign
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+---
+# --- CA cert (stable ca.crt across serving-cert rotations) ---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: caliban-session-plane-ca
+  namespace: {{ .Release.Namespace }}
+spec:
+  isCA: true
+  commonName: caliban-session-plane-ca
+  secretName: caliban-session-plane-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: caliban-session-plane-selfsign
+    kind: Issuer
+---
+# --- CA-backed issuer ---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: caliban-session-plane-ca
+  namespace: {{ .Release.Namespace }}
+spec:
+  ca:
+    secretName: caliban-session-plane-ca
+---
+# --- caliband serving cert (SAN must equal prosperod's SNI) ---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.sessionPlane.tlsSecret }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretName: {{ .Values.sessionPlane.tlsSecret }}
+  dnsNames:
+    - {{ .Values.sessionPlane.dnsName | quote }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: caliban-session-plane-ca
+    kind: Issuer
+{{- end }}
