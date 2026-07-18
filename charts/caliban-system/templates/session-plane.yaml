@@ -1,10 +1,10 @@
 {{- if .Values.sessionPlane.enabled }}
 # --- Bearer token (generated once, preserved across upgrades) ---
-{{- $tokenSecretName := .Values.sessionPlane.tokenSecret }}
+{{- $tokenSecretName := .Values.global.sessionPlane.tokenSecret }}
 {{- $existing := lookup "v1" "Secret" .Release.Namespace $tokenSecretName }}
 {{- $token := "" }}
-{{- if and $existing $existing.data (index $existing.data .Values.sessionPlane.tokenKey) }}
-{{- $token = index $existing.data .Values.sessionPlane.tokenKey | b64dec }}
+{{- if and $existing $existing.data (index $existing.data .Values.global.sessionPlane.tokenKey) }}
+{{- $token = index $existing.data .Values.global.sessionPlane.tokenKey | b64dec }}
 {{- else }}
 {{- $token = randAlphaNum 48 }}
 {{- end }}
@@ -15,7 +15,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 type: Opaque
 stringData:
-  {{ .Values.sessionPlane.tokenKey }}: {{ $token | quote }}
+  {{ .Values.global.sessionPlane.tokenKey }}: {{ $token | quote }}
 ---
 # --- Self-signed root issuer ---
 apiVersion: cert-manager.io/v1
@@ -57,12 +57,12 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.sessionPlane.tlsSecret }}
+  name: {{ .Values.global.sessionPlane.tlsSecret }}
   namespace: {{ .Release.Namespace }}
 spec:
-  secretName: {{ .Values.sessionPlane.tlsSecret }}
+  secretName: {{ .Values.global.sessionPlane.tlsSecret }}
   dnsNames:
-    - {{ .Values.sessionPlane.dnsName | quote }}
+    - {{ .Values.global.sessionPlane.serverName | quote }}
   privateKey:
     algorithm: ECDSA
     size: 256

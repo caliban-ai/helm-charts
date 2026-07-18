@@ -42,11 +42,11 @@ spec:
             - name: CALIBAN_WORKSPACE_STORAGE
               value: {{ .Values.env.workspaceStorage | quote }}
             - name: CALIBAN_SESSION_TLS_SECRET
-              value: {{ .Values.env.sessionTlsSecret | quote }}
+              value: {{ .Values.global.sessionPlane.tlsSecret | quote }}
             - name: CALIBAN_SESSION_TOKEN_SECRET
-              value: {{ .Values.env.sessionTokenSecret | quote }}
+              value: {{ .Values.global.sessionPlane.tokenSecret | quote }}
             - name: CALIBAN_SESSION_TOKEN_KEY
-              value: {{ .Values.env.sessionTokenKey | quote }}
+              value: {{ .Values.global.sessionPlane.tokenKey | quote }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

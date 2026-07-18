@@ -37,7 +37,9 @@ kubectl port-forward svc/caliban-system-prospero 7878:7878
 ## Prerequisites
 
 - A default StorageClass (or set one per-app in your overlay) for the PVCs.
-- Requires cert-manager installed in the cluster (issues the caliband session-plane serving certificate).
+- cert-manager installed in the cluster — **only** when `sessionPlane.enabled: true`
+  (operator / k8s-fleet installs; it issues the caliband session-plane serving
+  certificate). Not required for the default operator-less install.
 - For the full system later (P2): **[agent-sandbox](https://agent-sandbox.sigs.k8s.io)**
   installed as a cluster prerequisite (it is not bundled here).
 

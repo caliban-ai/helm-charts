@@ -50,9 +50,9 @@ spec:
             - name: PROSPERO_K8S_CALIBAND_CA_FILE
               value: /etc/prospero/session-tls/ca.crt
             - name: PROSPERO_K8S_CALIBAND_TOKEN_FILE
-              value: /etc/prospero/session-token/{{ .Values.sessionPlane.tokenKey }}
+              value: /etc/prospero/session-token/{{ .Values.global.sessionPlane.tokenKey }}
             - name: PROSPERO_K8S_CALIBAND_SERVER_NAME
-              value: {{ .Values.sessionPlane.serverName | quote }}
+              value: {{ .Values.global.sessionPlane.serverName | quote }}
             {{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
@@ -90,10 +90,10 @@ spec:
       volumes:
         - name: session-tls
           secret:
-            secretName: {{ .Values.sessionPlane.tlsSecret }}
+            secretName: {{ .Values.global.sessionPlane.tlsSecret }}
         - name: session-token
           secret:
-            secretName: {{ .Values.sessionPlane.tokenSecret }}
+            secretName: {{ .Values.global.sessionPlane.tokenSecret }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
