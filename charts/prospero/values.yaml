@@ -49,3 +49,15 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Shared identifiers for the session plane (see charts/caliban-system for the
+# umbrella source of truth). Declared here too so standalone installs of this
+# chart still resolve — Helm auto-merges the parent's `global` when installed
+# as a subchart. Consumed only when fleetBackend == "k8s".
+global:
+  sessionPlane:
+    tlsSecret: caliban-session-plane-tls
+    tokenSecret: caliban-session-plane-token
+    tokenKey: token
+    # Serving-cert SAN AND prosperod's TLS SNI — one value so they cannot diverge.
+    serverName: caliband

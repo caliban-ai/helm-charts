@@ -41,3 +41,20 @@ caliban-crds:
 # and the operator image is published — enabling it also requires caliban-crds.enabled=true.
 caliban-operator:
   enabled: false
+
+# Shared caliband session-plane credentials (bearer token + TLS serving cert).
+# Consumed by caliban-operator (mounted into caliband pods) and prospero (dialer).
+# Enable when the caliban-operator / k8s fleet is in use; requires cert-manager.
+sessionPlane:
+  enabled: false
+
+# Shared identifiers for the session plane, consumed identically by
+# caliban-system, caliban-operator, and prospero (single source of truth so
+# the serving cert's SAN and prosperod's TLS SNI cannot drift apart).
+global:
+  sessionPlane:
+    tlsSecret: caliban-session-plane-tls
+    tokenSecret: caliban-session-plane-token
+    tokenKey: token
+    # Serving-cert SAN AND prosperod's TLS SNI — one value so they cannot diverge.
+    serverName: caliband

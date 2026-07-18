@@ -51,7 +51,21 @@ prospero:
   # database:
   #   existingSecret: prospero-db   # kubectl create secret generic prospero-db --from-literal=url='postgres://user:pass@host:5432/prospero'
   #   secretKey: url
+  # k8s fleet (operator-backed agents) — requires caliban-crds + caliban-operator
+  # enabled below, and cert-manager installed in the cluster (session-plane TLS).
+  fleetBackend: k8s
 
-# Not built until P2 (agent-sandbox + CalibanTask). Leave off for now.
+# The CalibanTask CRD, required by the operator. Enable together with the operator.
+caliban-crds:
+  enabled: true
+
+# Reconciles CalibanTask → sandboxed caliband pods. This is the k8s-fleet example:
+# enabling it (with prospero.fleetBackend: k8s above) also requires the shared
+# session-plane credentials below, which need cert-manager installed in-cluster.
 caliban-operator:
-  enabled: false
+  enabled: true
+
+# Shared caliband session-plane credentials — required whenever the operator /
+# k8s fleet is in use (see caliban-operator/prospero above). Requires cert-manager.
+sessionPlane:
+  enabled: true
