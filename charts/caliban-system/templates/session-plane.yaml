@@ -1,72 +1,71 @@
-{{- if .Values.sessionPlane.enabled }}
+{{- /*
+Session-plane credentials the operator mounts into every caliband pod and
+prosperod dials with: a bearer token + a TLS serving cert. caliban-operator's
+build_sandbox mounts these UNCONDITIONALLY (caliband --listen fail-closes without
+them), so they MUST exist whenever the operator runs — hence the gate keys off
+caliban-operator being enabled (or an explicit sessionPlane.enabled override for
+the rare operator-external case).
+
+Self-contained by design: the TLS cert is minted with Helm's genSignedCert (no
+cert-manager dependency), and both Secrets are lookup-preserved so a `helm
+upgrade` reuses the existing values instead of rotating them. NOTE: a GitOps
+renderer that runs `helm template` with no cluster access (e.g. Argo CD) can't
+`lookup`, so it regenerates on every sync — such deployments should provision
+these Secrets out-of-band (cert-manager Certificate + a SealedSecret token) and
+leave sessionPlane.enabled unset; the names are the shared global.sessionPlane
+contract either way.
+*/ -}}
+{{- if or .Values.sessionPlane.enabled (index .Values "caliban-operator" "enabled") }}
+{{- $sp := .Values.global.sessionPlane }}
+{{- $ns := .Release.Namespace }}
 # --- Bearer token (generated once, preserved across upgrades) ---
-{{- $tokenSecretName := .Values.global.sessionPlane.tokenSecret }}
-{{- $existing := lookup "v1" "Secret" .Release.Namespace $tokenSecretName }}
+{{- $tokenName := $sp.tokenSecret }}
+{{- $existingTok := lookup "v1" "Secret" $ns $tokenName }}
 {{- $token := "" }}
-{{- if and $existing $existing.data (index $existing.data .Values.global.sessionPlane.tokenKey) }}
-{{- $token = index $existing.data .Values.global.sessionPlane.tokenKey | b64dec }}
+{{- if and $existingTok $existingTok.data (index $existingTok.data $sp.tokenKey) }}
+{{- $token = index $existingTok.data $sp.tokenKey | b64dec }}
 {{- else }}
 {{- $token = randAlphaNum 48 }}
 {{- end }}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ $tokenSecretName }}
-  namespace: {{ .Release.Namespace }}
+  name: {{ $tokenName }}
+  namespace: {{ $ns }}
 type: Opaque
 stringData:
-  {{ .Values.global.sessionPlane.tokenKey }}: {{ $token | quote }}
+  {{ $sp.tokenKey }}: {{ $token | quote }}
 ---
-# --- Self-signed root issuer ---
-apiVersion: cert-manager.io/v1
-kind: Issuer
+# --- TLS serving cert (self-signed via Helm, preserved across upgrades) ---
+# SAN == global.sessionPlane.serverName == prosperod's TLS SNI, so verification
+# can't drift. Emits a kubernetes.io/tls Secret plus ca.crt (prosperod's trust
+# anchor). On upgrade the existing cert is reused; only a first install (or a
+# lookup-less render) mints a fresh CA + leaf.
+{{- $tlsName := $sp.tlsSecret }}
+{{- $existingTls := lookup "v1" "Secret" $ns $tlsName }}
+{{- if and $existingTls $existingTls.data (index $existingTls.data "tls.crt") (index $existingTls.data "ca.crt") }}
+apiVersion: v1
+kind: Secret
 metadata:
-  name: caliban-session-plane-selfsign
-  namespace: {{ .Release.Namespace }}
-spec:
-  selfSigned: {}
----
-# --- CA cert (stable ca.crt across serving-cert rotations) ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
+  name: {{ $tlsName }}
+  namespace: {{ $ns }}
+type: kubernetes.io/tls
+data:
+  tls.crt: {{ index $existingTls.data "tls.crt" }}
+  tls.key: {{ index $existingTls.data "tls.key" }}
+  ca.crt: {{ index $existingTls.data "ca.crt" }}
+{{- else }}
+{{- $ca := genCA "caliban-session-plane-ca" 3650 }}
+{{- $cert := genSignedCert $sp.serverName nil (list $sp.serverName) 3650 $ca }}
+apiVersion: v1
+kind: Secret
 metadata:
-  name: caliban-session-plane-ca
-  namespace: {{ .Release.Namespace }}
-spec:
-  isCA: true
-  commonName: caliban-session-plane-ca
-  secretName: caliban-session-plane-ca
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  issuerRef:
-    name: caliban-session-plane-selfsign
-    kind: Issuer
----
-# --- CA-backed issuer ---
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: caliban-session-plane-ca
-  namespace: {{ .Release.Namespace }}
-spec:
-  ca:
-    secretName: caliban-session-plane-ca
----
-# --- caliband serving cert (SAN must equal prosperod's SNI) ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: {{ .Values.global.sessionPlane.tlsSecret }}
-  namespace: {{ .Release.Namespace }}
-spec:
-  secretName: {{ .Values.global.sessionPlane.tlsSecret }}
-  dnsNames:
-    - {{ .Values.global.sessionPlane.serverName | quote }}
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  issuerRef:
-    name: caliban-session-plane-ca
-    kind: Issuer
+  name: {{ $tlsName }}
+  namespace: {{ $ns }}
+type: kubernetes.io/tls
+data:
+  tls.crt: {{ $cert.Cert | b64enc }}
+  tls.key: {{ $cert.Key | b64enc }}
+  ca.crt: {{ $ca.Cert | b64enc }}
+{{- end }}
 {{- end }}
