@@ -37,9 +37,13 @@ kubectl port-forward svc/caliban-system-prospero 7878:7878
 ## Prerequisites
 
 - A default StorageClass (or set one per-app in your overlay) for the PVCs.
-- cert-manager installed in the cluster — **only** when `sessionPlane.enabled: true`
-  (operator / k8s-fleet installs; it issues the caliband session-plane serving
-  certificate). Not required for the default operator-less install.
+- No cert-manager requirement: when the operator is enabled the chart mints the
+  caliband session-plane token + TLS cert itself (Helm-generated, lookup-preserved
+  across `helm upgrade`). GitOps renderers that run `helm template` with no cluster
+  access (e.g. Argo CD) can't `lookup`, so they regenerate the creds every sync —
+  such deployments should instead provision the session-plane Secrets out-of-band
+  (a cert-manager Certificate + a SealedSecret token, using the shared
+  `global.sessionPlane` names) and leave `sessionPlane.enabled` unset.
 - For the full system later (P2): **[agent-sandbox](https://agent-sandbox.sigs.k8s.io)**
   installed as a cluster prerequisite (it is not bundled here).
 

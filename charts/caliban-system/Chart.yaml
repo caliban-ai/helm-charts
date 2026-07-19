@@ -2,7 +2,7 @@ apiVersion: v2
 name: caliban-system
 description: Umbrella chart composing the full caliban-ai system on Kubernetes
 type: application
-version: 0.3.2
+version: 0.3.3
 appVersion: "0.1.0"
 dependencies:
   - name: caliban-crds
@@ -18,10 +18,10 @@ dependencies:
     repository: "file://../gonzalo"
     condition: gonzalo.enabled
   - name: prospero
-    version: "0.2.2"
+    version: "0.2.3"
     repository: "file://../prospero"
     condition: prospero.enabled
   - name: caliban-operator
-    version: "0.2.1"
+    version: "0.2.2"
     repository: "file://../caliban-operator"
     condition: caliban-operator.enabled

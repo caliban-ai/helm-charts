@@ -44,7 +44,10 @@ caliban-operator:
 
 # Shared caliband session-plane credentials (bearer token + TLS serving cert).
 # Consumed by caliban-operator (mounted into caliband pods) and prospero (dialer).
-# Enable when the caliban-operator / k8s fleet is in use; requires cert-manager.
+# The operator mounts these unconditionally, so they are provisioned automatically
+# whenever caliban-operator.enabled is true — self-contained (Helm-minted cert +
+# token, no cert-manager needed). Set true only to force provisioning without the
+# operator (e.g. prospero dialing an externally-run operator).
 sessionPlane:
   enabled: false
 
