@@ -2,5 +2,5 @@ apiVersion: v2
 name: prospero
 description: Prospero control plane (prosperod) + dashboard — part of the caliban-ai system
 type: application
-version: 0.2.3
-appVersion: "0.3.2"   # prosperod built --features k8s (needed for fleetBackend=k8s); v0.3.2 = spawn no longer blocks on reconcile (Bug 1)
+version: 0.2.4
+appVersion: "0.3.3"   # prosperod built --features k8s (needed for fleetBackend=k8s); v0.3.3 = k8s fleet spawns the agent in caliband (#159), so runs actually start
