@@ -2,5 +2,5 @@ apiVersion: v2
 name: prospero
 description: Prospero control plane (prosperod) + dashboard — part of the caliban-ai system
 type: application
-version: 0.2.4
-appVersion: "0.3.3"   # prosperod built --features k8s (needed for fleetBackend=k8s); v0.3.3 = k8s fleet spawns the agent in caliband (#159), so runs actually start
+version: 0.2.5
+appVersion: "0.4.0"   # prosperod built --features k8s (needed for fleetBackend=k8s); v0.4.0 = interactive agents under the k8s fleet (#163) — the dashboard reply box. Needs caliban-crds >= 0.2.1 or the API server prunes spec.task.interactive
