@@ -2,11 +2,11 @@ apiVersion: v2
 name: caliban-system
 description: Umbrella chart composing the full caliban-ai system on Kubernetes
 type: application
-version: 0.3.7
+version: 0.3.8
 appVersion: "0.1.0"
 dependencies:
   - name: caliban-crds
-    version: "0.2.1"
+    version: "0.2.2"
     repository: "file://../caliban-crds"
     condition: caliban-crds.enabled
   - name: agent-sandbox

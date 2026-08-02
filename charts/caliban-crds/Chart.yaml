@@ -2,5 +2,5 @@ apiVersion: v2
 name: caliban-crds
 description: CustomResourceDefinitions for the caliban-ai operator (Workspace + CalibanTask) — installed as their own step
 type: application
-version: 0.2.1
-appVersion: "0.2.1"   # CalibanTask.spec.task.interactive (caliban-operator#28)
+version: 0.2.2
+appVersion: "0.2.2"   # Workspace.spec.sources optional (caliban-operator#21)

@@ -1,10 +1,6 @@
 # Source of truth: caliban-operator deploy/crd/workspace.yaml
 # Regenerate on any Workspace CRD change: cargo run --bin crdgen workspace > … then copy here.
 # Installed as its own chart step (Helm does not upgrade crds/ dirs); kept upgradable in templates/.
-# Divergence from source: the `spec.providers.items.properties.baseUrl` description's
-# example IP was neutralized to a hostname (`http://ollama.example.com:11434`) so the
-# cluster-agnostic leakage guard passes. Align upstream: change the `Provider.base_url`
-# doc comment in caliban-operator src/workspace.rs to drop the RFC1918 example.
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -121,7 +117,10 @@ spec:
                 minItems: 1
                 type: array
               sources:
-                description: The workspace's git checkouts (1..N).
+                description: |-
+                  The workspace's git checkouts (0..N). Optional at creation: a workspace
+                  may be registered bare and have sources added later (#21). `providers`
+                  stays required — `resolve` needs a bindable provider.
                 items:
                   description: A single source checkout in the workspace.
                   properties:
@@ -146,12 +145,10 @@ spec:
                   - path
                   - repo
                   type: object
-                minItems: 1
                 type: array
             required:
             - displayName
             - providers
-            - sources
             type: object
           status:
             description: Observed state of a `Workspace`.
