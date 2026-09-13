@@ -2,5 +2,5 @@ apiVersion: v2
 name: caliban-crds
 description: CustomResourceDefinitions for the caliban-ai operator (Workspace + CalibanTask) — installed as their own step
 type: application
-version: 0.2.2
-appVersion: "0.2.2"   # Workspace.spec.sources optional (caliban-operator#21)
+version: 0.2.3
+appVersion: "0.2.3"   # synced to caliban-operator v0.4.0 CRDs: provider `kind`/base-URL descriptions migrated off Ollama to openai examples (caliban-operator#39). Workspace.spec.sources remains optional (#21/#34).
