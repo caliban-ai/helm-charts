@@ -1,3 +1,9 @@
+{{- if .Values.auth.token }}
+{{- fail "gonzalo: auth.token was removed (a token in values ends up in git). Put a principals TOML in a Secret and set auth.existingSecret.name — see the chart README." }}
+{{- end }}
+{{- if and .Values.auth.existingSecret.name (not .Values.auth.existingSecret.key) }}
+{{- fail "gonzalo: auth.existingSecret.key must name the Secret key holding the principals TOML" }}
+{{- end }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -35,12 +41,9 @@ spec:
               value: "0.0.0.0:{{ .Values.service.httpPort }}"
             - name: GONZALO_GRPC_ADDR
               value: "0.0.0.0:{{ .Values.service.grpcPort }}"
-            {{- if .Values.auth.token }}
-            - name: GONZALO_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "gonzalo.fullname" . }}-auth
-                  key: GONZALO_TOKEN
+            {{- if .Values.auth.existingSecret.name }}
+            - name: GONZALO_AUTH_FILE
+              value: /etc/gonzalo/auth/principals.toml
             {{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
@@ -51,7 +54,8 @@ spec:
               containerPort: {{ .Values.service.httpPort }}
             - name: grpc
               containerPort: {{ .Values.service.grpcPort }}
-          # gonzalod has no HTTP health endpoint — probe the TCP port.
+          # gonzalod has no HTTP health endpoint — probe the TCP port. A TCP
+          # probe carries no token, so it stays unauthenticated with auth on.
           livenessProbe:
             tcpSocket:
               port: http
@@ -65,8 +69,23 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            {{- if .Values.auth.existingSecret.name }}
+            - name: auth
+              mountPath: /etc/gonzalo/auth
+              readOnly: true
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.auth.existingSecret.name }}
+      volumes:
+        - name: auth
+          secret:
+            secretName: {{ .Values.auth.existingSecret.name | quote }}
+            defaultMode: 0440
+            items:
+              - key: {{ .Values.auth.existingSecret.key | quote }}
+                path: principals.toml
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
