@@ -1,0 +1,56 @@
+# Generic, cluster-agnostic defaults ONLY.
+# Supply environment-specific values (service URLs, Discord IDs, Secret names)
+# via a SEPARATE PRIVATE overlay at deploy time:  helm install ... -f private-values.yaml
+#
+# Unconfigured, arield serves /healthz only and stays Ready: it needs both service
+# URLs AND a complete Discord configuration (token + guild ID + application ID)
+# before the bridge runs. See the chart README.
+
+image:
+  repository: ghcr.io/caliban-ai/ariel   # public once ariel publishes; override at deploy time
+  tag: ""                  # defaults to .Chart.AppVersion when unset
+  pullPolicy: IfNotPresent
+imagePullSecrets: []       # e.g. [{ name: ghcr-pull }] when pulling private images
+
+healthPort: 8081           # ARIEL_HEALTH_ADDR = 0.0.0.0:<healthPort>; /healthz probes
+
+prospero:
+  url: ""                  # ARIEL_PROSPERO_URL, e.g. http://<release>-prospero:7878
+
+gonzalo:
+  url: ""                  # ARIEL_GONZALO_URL, e.g. http://<release>-gonzalo:8080
+  # Existing Secret holding arield's gonzalod bearer token (a principal with
+  # read/write on `fleet` and `fleet-audit`). Mounted as a file; "" name = none.
+  tokenSecret:
+    name: ""
+    key: token
+
+discord:
+  # Existing Secret holding the Discord bot token. Mounted as a file; "" name = none.
+  tokenSecret:
+    name: ""
+    key: token
+  # Discord snowflakes. QUOTE them: an unquoted 19-digit number becomes a YAML
+  # float (1.2e+18) and the render fails rather than passing a mangled ID.
+  guildId: ""              # ARIEL_DISCORD_GUILD_ID
+  applicationId: ""        # ARIEL_DISCORD_APPLICATION_ID
+
+dashboardUrl: ""           # ARIEL_DASHBOARD_URL, linked from every notification (optional)
+
+# Deny all ingress except the health port. Egress stays open: arield dials the
+# Discord Gateway, prosperod and gonzalod outbound.
+networkPolicy:
+  enabled: false
+
+env: {}                    # extra raw env vars (map of name: value)
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+nodeSelector: {}
+tolerations: []
+affinity: {}

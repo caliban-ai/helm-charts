@@ -34,7 +34,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/pkg
           # Leaf charts have no dependencies — package directly.
-          for c in caliban-crds agent-sandbox gonzalo prospero caliban-operator; do
+          for c in caliban-crds agent-sandbox gonzalo prospero caliban-operator ariel; do
             echo "== package $c =="
             helm package "charts/$c" -d /tmp/pkg
           done

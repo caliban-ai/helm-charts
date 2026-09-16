@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ariel
+description: Ariel chat bridge (arield) — part of the caliban-ai system
+type: application
+version: 0.1.0
+appVersion: "0.1.0"   # arield from caliban-ai/ariel. NOT YET PUBLISHED: ariel's release workflow pushes ghcr.io/caliban-ai/ariel only on v* tags and ariel has not been tagged, so this tag will not pull until ariel cuts v0.1.0. Needs gonzalod >= 0.7.0 (the fleet access-control record kinds) with auth on.
