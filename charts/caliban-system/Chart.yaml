@@ -25,3 +25,7 @@ dependencies:
     version: "0.2.5"
     repository: "file://../caliban-operator"
     condition: caliban-operator.enabled
+  - name: ariel
+    version: "0.1.0"
+    repository: "file://../ariel"
+    condition: ariel.enabled

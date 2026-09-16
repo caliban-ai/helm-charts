@@ -1,0 +1,10 @@
+ariel (arield) is installed as Deployment {{ include "ariel.fullname" . }} (1 replica, Recreate).
+
+It has no Service: Discord events arrive over an outbound Gateway connection.
+Health: /healthz on port {{ .Values.healthPort }}.
+{{- if not (and .Values.prospero.url .Values.gonzalo.url .Values.discord.tokenSecret.name .Values.discord.guildId .Values.discord.applicationId) }}
+
+NOTE: not fully configured, so arield serves /healthz only. The bridge needs
+prospero.url, gonzalo.url, discord.tokenSecret.name, discord.guildId and
+discord.applicationId. See the chart README.
+{{- end }}

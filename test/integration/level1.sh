@@ -18,11 +18,11 @@ PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); printf '\033[32m  ✓ %s\033[0m\n' "$*"; }
 bad() { FAIL=$((FAIL+1)); printf '\033[31m  ✗ %s\033[0m\n' "$*"; }
 
-NS=(caliban-l1-gonzalo caliban-l1-prospero caliban-l1-operator caliban-l1-crds \
+NS=(caliban-l1-gonzalo caliban-l1-prospero caliban-l1-ariel caliban-l1-operator caliban-l1-crds \
     caliban-l1-umbrella caliban-l1-cr caliban-l1-rbac caliban-l1-prospero-rbac)
 cleanup() {
   echo "── cleanup ──"
-  for r in gonzalo prospero op crds sys crdonly oponly prosponly; do
+  for r in gonzalo prospero ariel op crds sys crdonly oponly prosponly; do
     for ns in "${NS[@]}"; do helm uninstall "$r" -n "$ns" --ignore-not-found >/dev/null 2>&1 || true; done
   done
   kubectl delete crd "$CRD" "$WORKSPACE_CRD" --ignore-not-found >/dev/null 2>&1 || true
@@ -49,6 +49,13 @@ smoke() { # release chart ns [extra helm args...]
 }
 smoke gonzalo  gonzalo          caliban-l1-gonzalo
 smoke prospero prospero         caliban-l1-prospero
+# ariel fully configured (NetworkPolicy, both token-Secret mounts, Discord IDs),
+# so every template it can render is applied; Secrets needn't exist to apply.
+smoke ariel    ariel            caliban-l1-ariel \
+  --set prospero.url=http://prospero:7878 --set gonzalo.url=http://gonzalo:8080 \
+  --set gonzalo.tokenSecret.name=ariel-gonzalo --set discord.tokenSecret.name=ariel-discord \
+  --set-string discord.guildId=123456789012345678 \
+  --set-string discord.applicationId=987654321098765432 --set networkPolicy.enabled=true
 smoke op       caliban-operator caliban-l1-operator
 smoke crds     caliban-crds     caliban-l1-crds
 # `update` (not `build`) regenerates Chart.lock from Chart.yaml and vendors every

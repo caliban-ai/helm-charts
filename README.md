@@ -15,6 +15,7 @@ Helm charts for deploying the **caliban-ai** system on Kubernetes.
 | `charts/gonzalo` | gonzalo persistence daemon (`gonzalod`) |
 | `charts/prospero` | prospero control plane (`prosperod`) + dashboard |
 | `charts/caliban-operator` | the kube-rs operator (`CalibanTask` controller) |
+| `charts/ariel` | Ariel chat bridge (`arield`); umbrella default off |
 | `charts/caliban-system` | **umbrella** — composes the below into a full-system install |
 | `charts/caliban-crds` | CRD install step (see its README — CRDs are installed separately) |
 | `charts/agent-sandbox` | vendored [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) v0.5.0 (Sandbox CRDs + controller) |

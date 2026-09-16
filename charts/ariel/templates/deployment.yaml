@@ -1,0 +1,149 @@
+{{- $discordToken := .Values.discord.tokenSecret -}}
+{{- $gonzaloToken := .Values.gonzalo.tokenSecret -}}
+{{- if and $discordToken.name (not $discordToken.key) }}
+{{- fail "ariel: discord.tokenSecret.key must name the Secret key holding the bot token" }}
+{{- end }}
+{{- if and $gonzaloToken.name (not $gonzaloToken.key) }}
+{{- fail "ariel: gonzalo.tokenSecret.key must name the Secret key holding the gonzalod token" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ariel.fullname" . }}
+  labels:
+    {{- include "ariel.labels" . | nindent 4 }}
+spec:
+  # One Discord bot token holds one Gateway session: overlapping pods would answer
+  # every command twice, so exactly one replica, replaced with Recreate.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "ariel.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ariel.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "ariel.fullname" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: arield
+          image: {{ include "ariel.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: ARIEL_HEALTH_ADDR
+              value: "0.0.0.0:{{ .Values.healthPort }}"
+            {{- with .Values.prospero.url }}
+            - name: ARIEL_PROSPERO_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.gonzalo.url }}
+            - name: ARIEL_GONZALO_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if $gonzaloToken.name }}
+            - name: ARIEL_GONZALO_TOKEN_FILE
+              value: /run/secrets/ariel/gonzalo/token
+            {{- end }}
+            {{- if $discordToken.name }}
+            - name: ARIEL_DISCORD_TOKEN_FILE
+              value: /run/secrets/ariel/discord/token
+            {{- end }}
+            {{- if .Values.discord.guildId }}
+            - name: ARIEL_DISCORD_GUILD_ID
+              value: {{ include "ariel.snowflake" (list "discord.guildId" .Values.discord.guildId) | quote }}
+            {{- end }}
+            {{- if .Values.discord.applicationId }}
+            - name: ARIEL_DISCORD_APPLICATION_ID
+              value: {{ include "ariel.snowflake" (list "discord.applicationId" .Values.discord.applicationId) | quote }}
+            {{- end }}
+            {{- with .Values.dashboardUrl }}
+            - name: ARIEL_DASHBOARD_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          ports:
+            - name: health
+              containerPort: {{ .Values.healthPort }}
+          # /healthz answers 200 whenever the process is serving, configured or not.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          {{- if or $discordToken.name $gonzaloToken.name }}
+          volumeMounts:
+            {{- if $discordToken.name }}
+            - name: discord-token
+              mountPath: /run/secrets/ariel/discord
+              readOnly: true
+            {{- end }}
+            {{- if $gonzaloToken.name }}
+            - name: gonzalo-token
+              mountPath: /run/secrets/ariel/gonzalo
+              readOnly: true
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if or $discordToken.name $gonzaloToken.name }}
+      volumes:
+        {{- if $discordToken.name }}
+        - name: discord-token
+          secret:
+            secretName: {{ $discordToken.name | quote }}
+            defaultMode: 0440
+            items:
+              - key: {{ $discordToken.key | quote }}
+                path: token
+        {{- end }}
+        {{- if $gonzaloToken.name }}
+        - name: gonzalo-token
+          secret:
+            secretName: {{ $gonzaloToken.name | quote }}
+            defaultMode: 0440
+            items:
+              - key: {{ $gonzaloToken.key | quote }}
+                path: token
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

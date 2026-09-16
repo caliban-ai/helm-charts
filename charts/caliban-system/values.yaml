@@ -42,6 +42,13 @@ caliban-crds:
 caliban-operator:
   enabled: false
 
+# Ariel chat bridge (arield). OFF by default: unconfigured it only serves
+# /healthz, no ariel image is published yet, and the bridge needs gonzalod >= 0.7.0
+# with auth on. Configure prospero/gonzalo URLs, Discord IDs and token Secret names
+# in your private overlay — see charts/ariel/README.md.
+ariel:
+  enabled: false
+
 # Shared caliband session-plane credentials (bearer token + TLS serving cert).
 # Consumed by caliban-operator (mounted into caliband pods) and prospero (dialer).
 # The operator mounts these unconditionally, so they are provisioned automatically
