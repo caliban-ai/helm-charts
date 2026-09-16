@@ -2,5 +2,5 @@ apiVersion: v2
 name: gonzalo
 description: Gonzalo persistence daemon (gonzalod) — part of the caliban-ai system
 type: application
-version: 0.2.1
+version: 0.3.0
 appVersion: "0.6.0"   # jumps three releases (0.3.0 -> 0.6.0): v0.4.0 remote parity + backend qualification, v0.5.0 code-graph correctness, v0.6.0 resolution from what the syntax says. No daemon-facing change — no new env, ports, or storage — so nothing else in this chart moves. Operationally, v0.6.0 raises EXTRACTION_VERSION, so gonzalod rebuilds each stored view on the first index after the upgrade (a full walk, not incremental) rather than serving stale slices.

@@ -13,7 +13,13 @@ service:
   httpPort: 8080
   grpcPort: 50051
 auth:
-  token: ""                # if set, mounted as GONZALO_TOKEN via a Secret; "" = off
+  # Namespace-scoped principals (gonzalo ADR 0015). Name an EXISTING Secret whose
+  # `key` holds the principals TOML; the chart mounts it read-only and points
+  # GONZALO_AUTH_FILE at it. Principals and tokens never go in values. Unset
+  # name = auth off (open), the local default. See the chart README.
+  existingSecret:
+    name: ""
+    key: principals.toml
 persistence:               # fs substrate always provisions a PVC (not optional)
   storageClass: ""         # "" = cluster default
   size: 1Gi
