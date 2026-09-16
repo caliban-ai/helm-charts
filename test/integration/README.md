@@ -12,7 +12,7 @@ gate** (see below); Level 3 is deferred:
 | Level | What it proves | Needs images? | Needs registry secrets? | In CI? |
 |-------|----------------|:---:|:---:|:---:|
 | **0** | Rendered YAML is schema-valid (`helm lint`, `kubeconform`) | no | no | ✅ required (`lint`) |
-| **1** | Charts **apply** to a real API server; `CalibanTask` round-trips its CRD schema; operator **RBAC is sufficient** | no | no | ✅ required (`integration`) |
+| **1** | Charts **apply** to a real API server; `CalibanTask` round-trips its CRD schema; operator + prospero **RBAC is sufficient** | no | no | ✅ required (`integration`) |
 | **2** | Full umbrella (agent-sandbox + gonzalo + prospero + operator + CRDs) reaches **Ready** on k3s | yes (all **public**) | no | ✅ required (`deploy-gate`) |
 | **3** | Operator **reconciles** a `CalibanTask` → a running sandboxed caliband pod | yes (all **public**) | no | ✅ required (`reconcile-gate`) |
 
@@ -31,6 +31,12 @@ image/secret cost:
   else checks it actually *permits* the verbs/resources the operator needs. Level 1
   asserts the full matrix — including a few negative controls the operator must be
   **denied** — using raw `SubjectAccessReview` objects.
+- **Prospero RBAC sufficiency.** Under `fleetBackend=k8s` prospero gets a
+  *namespaced* Role — CalibanTask/Workspace CRUD plus `patch` on
+  `calibantasks/status` for the `AgentsSettled` condition. Level 1 asserts it the
+  same way, with the review scoped to the release namespace (a Role grants nothing
+  to a cluster-scoped review), and denies status `update`, Workspace status writes,
+  and Secret access.
 - **Real apply.** CRD registration, RBAC object creation, admission/defaulting, and
   umbrella dependency wiring all run against a live control plane.
 

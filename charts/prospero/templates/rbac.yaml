@@ -14,9 +14,12 @@ rules:
   - apiGroups: ["caliban.caliban-ai.dev"]
     resources: ["calibantasks"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # get → read operator status; patch → server-side apply ONLY the AgentsSettled
+  # condition (field manager `prospero`), reporting agent lifecycle back into the
+  # CR per caliban-operator ADR 0005. No update: prospero never replaces status.
   - apiGroups: ["caliban.caliban-ai.dev"]
     resources: ["calibantasks/status"]
-    verbs: ["get"]
+    verbs: ["get", "patch"]
   # Prospero is the editor of Workspace CRs (the k8s config plane): add/remove
   # workspaces and edit their sources/providers/config. It reads Workspace status
   # to show reconciliation state. It references credential Secrets by name but has

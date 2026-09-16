@@ -19,10 +19,10 @@ ok()  { PASS=$((PASS+1)); printf '\033[32m  ✓ %s\033[0m\n' "$*"; }
 bad() { FAIL=$((FAIL+1)); printf '\033[31m  ✗ %s\033[0m\n' "$*"; }
 
 NS=(caliban-l1-gonzalo caliban-l1-prospero caliban-l1-operator caliban-l1-crds \
-    caliban-l1-umbrella caliban-l1-cr caliban-l1-rbac)
+    caliban-l1-umbrella caliban-l1-cr caliban-l1-rbac caliban-l1-prospero-rbac)
 cleanup() {
   echo "── cleanup ──"
-  for r in gonzalo prospero op crds sys crdonly oponly; do
+  for r in gonzalo prospero op crds sys crdonly oponly prosponly; do
     for ns in "${NS[@]}"; do helm uninstall "$r" -n "$ns" --ignore-not-found >/dev/null 2>&1 || true; done
   done
   kubectl delete crd "$CRD" "$WORKSPACE_CRD" --ignore-not-found >/dev/null 2>&1 || true
@@ -102,6 +102,7 @@ kind: SubjectAccessReview
 spec:
   user: ${SUBJ}
   resourceAttributes:
+    namespace: ${SAR_NS:-}
     group: ${1}
     resource: ${2}
     verb: ${3}
@@ -133,6 +134,29 @@ deny caliban.caliban-ai.dev workspaces delete     # ditto
 deny "" pods create                               # operator makes Sandboxes, never pods directly
 deny "" secrets list                              # gets credentialsRef Secrets by name only, never lists
 helm uninstall oponly -n caliban-l1-rbac >/dev/null 2>&1 || true
+
+# ── 4. prospero RBAC sufficiency: the namespaced fleet Role (fleetBackend=k8s).
+#      Same discovery-free SubjectAccessReview helpers as section 3, re-pointed at
+#      prospero's ServiceAccount and scoped to its namespace (section 3's
+#      ClusterRole answers cluster-wide; a Role grants nothing without one).
+echo "══ 4. prospero RBAC sufficiency (SubjectAccessReview, discovery-free) ══"
+kubectl create ns caliban-l1-prospero-rbac >/dev/null 2>&1 || true
+helm install prosponly "$CHARTS/prospero" -n caliban-l1-prospero-rbac --set fleetBackend=k8s >/dev/null
+SA=$(kubectl -n caliban-l1-prospero-rbac get sa -l app.kubernetes.io/name=prospero \
+       -o jsonpath='{.items[0].metadata.name}')
+SUBJ="system:serviceaccount:caliban-l1-prospero-rbac:${SA}"
+SAR_NS=caliban-l1-prospero-rbac   # a namespaced Role only answers in its own namespace
+for v in get list watch create update patch delete; do allow caliban.caliban-ai.dev calibantasks "$v"; done
+# Server-side applies the AgentsSettled condition into CalibanTask status
+# (field manager `prospero`; caliban-operator ADR 0005, prospero#228).
+for v in get patch; do allow caliban.caliban-ai.dev calibantasks "$v" status; done
+deny caliban.caliban-ai.dev calibantasks update status   # SSA is a patch; no whole-status replace
+for v in get list watch create update patch delete; do allow caliban.caliban-ai.dev workspaces "$v"; done
+allow caliban.caliban-ai.dev workspaces get status
+deny caliban.caliban-ai.dev workspaces patch status      # the operator owns Workspace status
+deny "" secrets get                                      # the operator is the sole Secret reader
+deny "" secrets list                                     # secretPicker is off by default
+helm uninstall prosponly -n caliban-l1-prospero-rbac >/dev/null 2>&1 || true
 
 echo "──────────────────────────────"
 printf 'result: \033[32m%d passed\033[0m, \033[31m%d failed\033[0m\n' "$PASS" "$FAIL"
