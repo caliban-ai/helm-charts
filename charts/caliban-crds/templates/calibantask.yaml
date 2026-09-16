@@ -62,7 +62,10 @@ spec:
                 nullable: true
                 properties:
                   routerConfigRef:
-                    description: Name of a ConfigMap holding the router config.
+                    description: |-
+                      Name of a ConfigMap (same namespace) holding the model router config
+                      under the key `caliban.toml`. Mounted read-only into the sandbox and
+                      handed to caliban as `CALIBAN_ROUTER_CONFIG`.
                     nullable: true
                     type: string
                 type: object
@@ -86,13 +89,39 @@ spec:
                 nullable: true
                 properties:
                   gonzaloEndpoint:
-                    description: gonzalod endpoint the pod uses for shared state.
+                    description: |-
+                      gonzalod URL the task's agents use for shared state (e.g.
+                      `http://gonzalod.storage.svc:8080`). Setting it selects remote storage
+                      unless `mode` says `local`.
                     nullable: true
                     type: string
                   mode:
-                    description: '`remote` (shared gonzalod) or `local` (in-pod).'
+                    description: |-
+                      `remote` (shared gonzalod) or `local` (in-pod filesystem). Defaults to
+                      `remote` when `gonzaloEndpoint` is set.
                     nullable: true
                     type: string
+                  tokenRef:
+                    description: |-
+                      Secret holding the gonzalod bearer token, projected into the pod as
+                      `GONZALO_TOKEN`. Requires remote storage. caliban-memory and
+                      caliban-sessions write to the gonzalod `caliban` namespace, so use a
+                      principal with read/write on `caliban` only and no write on `fleet` or
+                      `fleet-audit`.
+                    nullable: true
+                    properties:
+                      key:
+                        description: Key within the Secret's data.
+                        minLength: 1
+                        type: string
+                      secretName:
+                        description: Name of the Secret (same namespace).
+                        minLength: 1
+                        type: string
+                    required:
+                    - key
+                    - secretName
+                    type: object
                 type: object
               task:
                 description: The task itself.
@@ -149,7 +178,6 @@ spec:
                 nullable: true
                 type: string
               conditions:
-                default: []
                 description: Standard Kubernetes conditions.
                 items:
                   description: A minimal Kubernetes-style condition.
@@ -173,6 +201,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               phase:
                 default: Pending
                 description: Lifecycle phase.
@@ -190,6 +221,34 @@ spec:
                   later `Workspace` edits don't re-pin a running task.
                 nullable: true
                 properties:
+                  egress:
+                    description: Workspace egress restriction, if any.
+                    nullable: true
+                    properties:
+                      allow:
+                        default: []
+                        description: |-
+                          Destinations agent pods may reach besides DNS. This list replaces the
+                          default allow-all egress: include the workspace's git remotes, its model
+                          provider endpoints, and gonzalod if used. An empty list allows DNS only.
+                        items:
+                          description: One allowed egress destination.
+                          properties:
+                            cidr:
+                              description: Destination CIDR, e.g. `192.0.2.0/24` or `2001:db8::/32`.
+                              minLength: 1
+                              type: string
+                            ports:
+                              description: TCP ports allowed to that CIDR. Empty allows every port.
+                              items:
+                                format: int32
+                                type: integer
+                              type: array
+                          required:
+                          - cidr
+                          type: object
+                        type: array
+                    type: object
                   env:
                     description: Non-secret env from the workspace.
                     items:
@@ -267,7 +326,12 @@ spec:
                           minLength: 1
                           type: string
                         path:
-                          description: Absolute mount path in the pod (e.g. `/work/caliban`).
+                          description: |-
+                            Absolute checkout path in the pod (e.g. `/work/caliban`). Must be a
+                            directory strictly under the operator's workspace root (default
+                            `/work`) and distinct from every other source's path; otherwise the
+                            Workspace goes `Failed`, since a checkout outside the persistent volume
+                            is lost on every restart.
                           minLength: 1
                           type: string
                         ref:
