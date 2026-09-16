@@ -2,5 +2,5 @@ apiVersion: v2
 name: caliban-operator
 description: caliban-operator (kube-rs) controller — reconciles CalibanTask into sandboxed caliband pods
 type: application
-version: 0.2.5
-appVersion: "0.4.0"   # v0.4.0 = interactive CalibanTasks (#28), sandbox reachability fixes (session-plane CA #33, --tls-server-name #36, provider-native env #31), Workspace.spec.sources optional (#34), and the Ollama→openai migration of the sample/CRD (#39). Also moves env.calibandImage → caliban 0.12.0 (see values.yaml).
+version: 0.2.6
+appVersion: "0.4.0"   # v0.4.0 = interactive CalibanTasks (#28), sandbox reachability fixes (session-plane CA #33, --tls-server-name #36, provider-native env #31), Workspace.spec.sources optional (#34), and the Ollama→openai migration of the sample/CRD (#39). Chart 0.2.6 moves env.calibandImage → caliban 0.13.0 (see values.yaml).
