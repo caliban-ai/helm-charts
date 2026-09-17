@@ -134,6 +134,7 @@ for v in get update patch; do allow caliban.caliban-ai.dev workspaces "$v" statu
 for v in get list watch create update patch delete; do allow agents.x-k8s.io sandboxes "$v"; done
 for v in get list watch create update patch delete; do allow "" serviceaccounts "$v"; done
 for v in get list watch create update patch delete; do allow networking.k8s.io networkpolicies "$v"; done
+for v in create patch; do allow events.k8s.io events "$v"; done   # Kubernetes Events (caliban-operator#56)
 allow "" secrets get                              # reads credentialsRef Secrets (existence check) — sole Secret reader
 deny caliban.caliban-ai.dev calibantasks delete   # operator has no delete on its own CR
 deny caliban.caliban-ai.dev workspaces create     # prospero owns Workspace CRUD, not the operator
