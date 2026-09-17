@@ -17,6 +17,10 @@ spec:
     metadata:
       labels:
         {{- include "prospero.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
     spec:
       serviceAccountName: {{ include "prospero.fullname" . }}
       {{- with .Values.imagePullSecrets }}

@@ -63,6 +63,13 @@ database:                  # clustered only
   url: ""
 leaseTtlSecs: 30           # clustered lease TTL
 env: {}                    # extra raw env (map of name: value)
+# Pod-template annotations, rendered through `tpl` so a parent chart can pass a
+# checksum of a Secret it provides (prosperod reads apiAuth files only at
+# startup). Helm resolves `include` by full template name across charts, e.g.:
+#   checksum/api-tokens: '{{ include "<parent>/templates/<tokens>.yaml" . | sha256sum }}'
+# tpl runs in THIS chart's context, so the included template must not read the
+# parent's .Values (a static SealedSecret is fine).
+podAnnotations: {}
 resources: {}
 nodeSelector: {}
 tolerations: []
