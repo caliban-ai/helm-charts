@@ -40,6 +40,10 @@ selected by `topology`:
 | `database.existingSecret` | `""` | Secret holding the Postgres URL (clustered) |
 | `database.secretKey` | `url` | key within that Secret |
 | `database.url` | `""` | inline alternative to `existingSecret`; keep out of the public repo, overlay only |
+| `apiAuth.tokensSecret.name` / `.key` | `""` / `tokens` | existing Secret holding the tokens file; mounted, `PROSPERO_API_TOKENS_FILE` |
+| `apiAuth.sessionKeySecret.name` / `.key` | `""` / `session.key` | existing Secret holding the cookie HMAC key; **required** clustered with tokens |
+| `apiAuth.insecureNoAuth` | `false` | `PROSPERO_INSECURE_NO_AUTH=1`: run with no API auth (explicit opt-out) |
+| `apiAuth.cookieSecure` | `false` | `PROSPERO_COOKIE_SECURE=1`: always mark the session cookie `Secure` |
 | `autostart` | `false` | `--no-autostart` (no caliband in this image) |
 | `leaseTtlSecs` | `30` | clustered lease TTL |
 | `env` | `{}` | extra raw env vars (map of `name: value`) |
@@ -47,6 +51,38 @@ selected by `topology`:
 | `nodeSelector` | `{}` | |
 | `tolerations` | `[]` | |
 | `affinity` | `{}` | |
+
+## API authentication (prospero >= 0.8.0)
+
+prosperod authenticates its API with named tokens (prospero ADR-0010). The pod
+binds `0.0.0.0`, and with no tokens prosperod **refuses to start**, so every
+install must choose one of:
+
+- **Tokens (recommended).** Generate one per client and keep the printed token;
+  prosperod stores only its hash:
+
+      prospero token new dashboard --scope admin
+      # prints the token once, and a tokens-file line: dashboard admin sha256:<hex>
+
+  Put the lines in a Secret (a SealedSecret in GitOps) and name it:
+
+      kubectl create secret generic prospero-api-tokens \
+        --from-literal=tokens="dashboard admin sha256:<hex>"
+      helm install prospero charts/prospero --set apiAuth.tokensSecret.name=prospero-api-tokens
+
+  Scopes: `read` (every GET), `operate` (+ spawn, kill, input), `admin` (+ workspace
+  changes). The dashboard signs in with a token; the CLI uses `PROSPERO_TOKEN`.
+  `/healthz` and `/readyz` stay open, so probes need no token.
+- **Clustered** additionally needs a shared cookie-signing key
+  (`openssl rand -base64 48`) in `apiAuth.sessionKeySecret`, or the render fails.
+- **Opt out:** `apiAuth.insecureNoAuth=true`. Anyone who can reach the pod
+  controls the fleet.
+
+The chart fails the render only for contradictions (tokens plus `insecureNoAuth`,
+or clustered tokens without a session key). With neither set it renders, and
+prosperod exits with a message naming both options.
+
+Revoking a token: remove its line from the Secret and restart the pod.
 
 `PROSPERO_REPLICA_ID` is set from the pod name automatically. Schema is created
 on boot (no migration job). Postgres is never shipped by this chart.

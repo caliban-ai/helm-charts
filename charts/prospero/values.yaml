@@ -33,6 +33,24 @@ fleetBackend: local
 secretPicker:
   enabled: false
 
+# API authentication (prospero >= 0.8.0, ADR-0010). The pod binds 0.0.0.0, so
+# prosperod REFUSES TO START unless you configure tokens OR opt out explicitly.
+# Reference existing Secrets only; token material never goes in values.
+apiAuth:
+  # Secret key holding the tokens file: one `<name> <scope> sha256:<hex>` line per
+  # token (generate with `prospero token new <name> --scope read|operate|admin`).
+  tokensSecret:
+    name: ""
+    key: tokens
+  # Secret key holding the session-cookie HMAC key (>= 32 bytes, e.g.
+  # `openssl rand -base64 48`). REQUIRED for topology=clustered with tokens;
+  # standalone generates a random key per process (sessions reset on restart).
+  sessionKeySecret:
+    name: ""
+    key: session.key
+  insecureNoAuth: false    # true => PROSPERO_INSECURE_NO_AUTH=1 (anyone reaching the pod controls the fleet)
+  cookieSecure: false      # true => always mark the session cookie Secure (else only behind X-Forwarded-Proto: https)
+
 persistence:               # standalone only (no toggle: the StatefulSet's PVC is always required)
   storageClass: ""         # "" = cluster default
   size: 1Gi

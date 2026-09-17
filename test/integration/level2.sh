@@ -39,10 +39,20 @@ log "vendoring umbrella dependencies…"
 helm dependency update "$CHARTS/$REL" >/dev/null 2>&1 || \
   helm dependency build "$CHARTS/$REL" >/dev/null 2>&1 || true
 
+# prospero >= 0.8.0 refuses to bind 0.0.0.0 without API tokens (ADR-0010). Give it a
+# real tokens Secret so the gate exercises the authenticated path, not the opt-out.
+kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+PROSPERO_CI_TOKEN="pspo_ci_$(openssl rand -hex 16)"
+PROSPERO_CI_HASH=$(printf '%s' "$PROSPERO_CI_TOKEN" | sha256sum | cut -d' ' -f1)
+kubectl -n "$NS" create secret generic prospero-api-tokens \
+  --from-literal=tokens="ci-gate admin sha256:${PROSPERO_CI_HASH}" \
+  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
 log "installing full umbrella + waiting up to $TIMEOUT for every workload to reach Ready…"
 if helm install "$REL" "$CHARTS/$REL" \
       --namespace "$NS" --create-namespace \
       --set caliban-crds.enabled=true --set caliban-operator.enabled=true \
+      --set prospero.apiAuth.tokensSecret.name=prospero-api-tokens \
       --wait --timeout "$TIMEOUT"; then
   log "✅ Level 2 PASS — all umbrella workloads reached Ready"
   exit 0
