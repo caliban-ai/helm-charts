@@ -16,6 +16,12 @@ healthPort: 8081           # ARIEL_HEALTH_ADDR = 0.0.0.0:<healthPort>; /healthz 
 
 prospero:
   url: ""                  # ARIEL_PROSPERO_URL, e.g. http://<release>-prospero:7878
+  # Existing Secret holding arield's prosperod API token (prospero >= 0.8.0 with
+  # auth on). Scope `operate` for /ariel spawn and kill; `read` is enough for
+  # notifications alone. Mounted as a file (ARIEL_PROSPERO_TOKEN_FILE); "" name = none.
+  tokenSecret:
+    name: ""
+    key: token
 
 gonzalo:
   url: ""                  # ARIEL_GONZALO_URL, e.g. http://<release>-gonzalo:8080

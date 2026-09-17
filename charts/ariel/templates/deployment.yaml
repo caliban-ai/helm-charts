@@ -1,10 +1,14 @@
 {{- $discordToken := .Values.discord.tokenSecret -}}
 {{- $gonzaloToken := .Values.gonzalo.tokenSecret -}}
+{{- $prosperoToken := .Values.prospero.tokenSecret -}}
 {{- if and $discordToken.name (not $discordToken.key) }}
 {{- fail "ariel: discord.tokenSecret.key must name the Secret key holding the bot token" }}
 {{- end }}
 {{- if and $gonzaloToken.name (not $gonzaloToken.key) }}
 {{- fail "ariel: gonzalo.tokenSecret.key must name the Secret key holding the gonzalod token" }}
+{{- end }}
+{{- if and $prosperoToken.name (not $prosperoToken.key) }}
+{{- fail "ariel: prospero.tokenSecret.key must name the Secret key holding the prosperod API token" }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
@@ -55,6 +59,10 @@ spec:
             - name: ARIEL_PROSPERO_URL
               value: {{ . | quote }}
             {{- end }}
+            {{- if $prosperoToken.name }}
+            - name: ARIEL_PROSPERO_TOKEN_FILE
+              value: /run/secrets/ariel/prospero/token
+            {{- end }}
             {{- with .Values.gonzalo.url }}
             - name: ARIEL_GONZALO_URL
               value: {{ . | quote }}
@@ -99,7 +107,7 @@ spec:
               port: health
             initialDelaySeconds: 2
             periodSeconds: 5
-          {{- if or $discordToken.name $gonzaloToken.name }}
+          {{- if or $discordToken.name $gonzaloToken.name $prosperoToken.name }}
           volumeMounts:
             {{- if $discordToken.name }}
             - name: discord-token
@@ -111,10 +119,15 @@ spec:
               mountPath: /run/secrets/ariel/gonzalo
               readOnly: true
             {{- end }}
+            {{- if $prosperoToken.name }}
+            - name: prospero-token
+              mountPath: /run/secrets/ariel/prospero
+              readOnly: true
+            {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- if or $discordToken.name $gonzaloToken.name }}
+      {{- if or $discordToken.name $gonzaloToken.name $prosperoToken.name }}
       volumes:
         {{- if $discordToken.name }}
         - name: discord-token
@@ -132,6 +145,15 @@ spec:
             defaultMode: 0440
             items:
               - key: {{ $gonzaloToken.key | quote }}
+                path: token
+        {{- end }}
+        {{- if $prosperoToken.name }}
+        - name: prospero-token
+          secret:
+            secretName: {{ $prosperoToken.name | quote }}
+            defaultMode: 0440
+            items:
+              - key: {{ $prosperoToken.key | quote }}
                 path: token
         {{- end }}
       {{- end }}

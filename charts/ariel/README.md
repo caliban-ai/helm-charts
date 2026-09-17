@@ -34,6 +34,7 @@ chart ships **no Service and no Ingress**.
 | `image.tag` | `""` | defaults to `.Chart.AppVersion` |
 | `healthPort` | `8081` | `ARIEL_HEALTH_ADDR=0.0.0.0:<port>`; `/healthz` probes |
 | `prospero.url` | `""` | `ARIEL_PROSPERO_URL` |
+| `prospero.tokenSecret.name` / `.key` | `""` / `token` | mounted, `ARIEL_PROSPERO_TOKEN_FILE` |
 | `gonzalo.url` | `""` | `ARIEL_GONZALO_URL` |
 | `gonzalo.tokenSecret.name` / `.key` | `""` / `token` | mounted, `ARIEL_GONZALO_TOKEN_FILE` |
 | `discord.tokenSecret.name` / `.key` | `""` / `token` | mounted, `ARIEL_DISCORD_TOKEN_FILE` |
@@ -64,6 +65,13 @@ startup, which is why the chart only sets those variables when a Secret is named
 - **gonzalod 0.7.0 or later.** Ariel's records are the fleet access-control kinds
   from gonzalo ADR 0022; 0.6.0 can't decode them. Upgrade every gonzalo binary
   that holds or syncs those records first.
+- **A prosperod API token** when prosperod has auth on (prospero >= 0.8.0).
+  Mint one with `prospero token new ariel --scope operate` (`operate` covers
+  `/ariel spawn` and kill; `read` is enough for notifications alone), add its
+  tokens-file line to prosperod's tokens Secret (see the prospero chart README's
+  "API authentication"), and put the printed token in a Secret named by
+  `prospero.tokenSecret`. Without one, arield sends no credentials, and an
+  auth-on prosperod answers 401.
 - **gonzalod auth on**, with a principal for ariel scoped to the `fleet` and
   `fleet-audit` namespaces. See the gonzalo chart README's principals example.
   Without auth, any pod could write role grants and make itself an ariel admin.
@@ -74,6 +82,8 @@ Example private overlay:
 ```yaml
 prospero:
   url: http://caliban-system-prospero:7878
+  tokenSecret:
+    name: ariel-prospero-token    # key `token`: ariel's prosperod API token
 gonzalo:
   url: http://caliban-system-gonzalo:8080
   tokenSecret:
