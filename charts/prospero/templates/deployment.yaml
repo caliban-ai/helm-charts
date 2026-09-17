@@ -2,6 +2,9 @@
 {{- if not (or .Values.database.existingSecret .Values.database.url) }}
 {{- fail "topology=clustered requires database.existingSecret or database.url" }}
 {{- end }}
+{{- include "prospero.apiAuth.validate" . }}
+{{- $authMounts := include "prospero.apiAuth.volumeMounts" . }}
+{{- $authVolumes := include "prospero.apiAuth.volumes" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,6 +66,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "prospero.dbSecretName" . }}
                   key: {{ .Values.database.secretKey }}
+            {{- with (include "prospero.apiAuth.env" . | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
@@ -82,25 +86,31 @@ spec:
               port: http
             initialDelaySeconds: 2
             periodSeconds: 5
-          {{- if eq .Values.fleetBackend "k8s" }}
+          {{- if or (eq .Values.fleetBackend "k8s") $authMounts }}
           volumeMounts:
+            {{- if eq .Values.fleetBackend "k8s" }}
             - name: session-tls
               mountPath: /etc/prospero/session-tls
               readOnly: true
             - name: session-token
               mountPath: /etc/prospero/session-token
               readOnly: true
+            {{- end }}
+            {{- with ($authMounts | trim) }}{{ . | nindent 12 }}{{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- if eq .Values.fleetBackend "k8s" }}
+      {{- if or (eq .Values.fleetBackend "k8s") $authVolumes }}
       volumes:
+        {{- if eq .Values.fleetBackend "k8s" }}
         - name: session-tls
           secret:
             secretName: {{ .Values.global.sessionPlane.tlsSecret }}
         - name: session-token
           secret:
             secretName: {{ .Values.global.sessionPlane.tokenSecret }}
+        {{- end }}
+        {{- with ($authVolumes | trim) }}{{ . | nindent 8 }}{{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
