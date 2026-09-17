@@ -47,6 +47,7 @@ selected by `topology`:
 | `autostart` | `false` | `--no-autostart` (no caliband in this image) |
 | `leaseTtlSecs` | `30` | clustered lease TTL |
 | `env` | `{}` | extra raw env vars (map of `name: value`) |
+| `podAnnotations` | `{}` | pod-template annotations, rendered through `tpl` (see "Rolling prosperod when a token changes") |
 | `resources` | `{}` | pod resource requests/limits |
 | `nodeSelector` | `{}` | |
 | `tolerations` | `[]` | |
@@ -83,6 +84,25 @@ or clustered tokens without a session key). With neither set it renders, and
 prosperod exits with a message naming both options.
 
 Revoking a token: remove its line from the Secret and restart the pod.
+
+### Rolling prosperod when a token changes
+
+prosperod reads the tokens file and session key **only at startup**, so a changed
+Secret has no effect until the pod restarts. When the Secret comes from a chart
+you control (e.g. a SealedSecret in an umbrella), add a checksum of its template
+as a pod annotation. `podAnnotations` values go through `tpl`, and Helm resolves
+`include` by full template name across chart boundaries:
+
+    prospero:
+      podAnnotations:
+        checksum/api-tokens: '{{ include "my-umbrella/templates/prospero-api-tokens.sealed.yaml" . | sha256sum }}'
+
+Any edit to that template changes the pod template, so Helm or Argo rolls prosperod.
+
+`tpl` evaluates in **this chart's** context, so the included template sees the
+prospero chart's `.Values`, not the parent's. That's fine for a static template
+such as a SealedSecret (no `{{ }}` inside); a parent template that reads its own
+values fails to render here.
 
 `PROSPERO_REPLICA_ID` is set from the pod name automatically. Schema is created
 on boot (no migration job). Postgres is never shipped by this chart.
