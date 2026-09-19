@@ -2,5 +2,5 @@ apiVersion: v2
 name: caliban-crds
 description: CustomResourceDefinitions for the caliban-ai operator (Workspace + CalibanTask) — installed as their own step
 type: application
-version: 0.2.4
-appVersion: "0.2.4"   # synced to caliban-operator main 60b8f15 (post-v0.4.0, unreleased): additive — Workspace.spec.egress allow-list (#58), CalibanTask.spec.state.tokenRef (#41/#53), status.conditions as a map-list keyed by `type` for server-side apply (#64), doc fixes (#77). Safe to install ahead of the operator: an older operator ignores the new fields.
+version: 0.2.5
+appVersion: "0.2.5"   # synced to caliban-operator main 892a2e5 (post-v0.5.0, unreleased): additive — CalibanTask.spec.task.permissionPosture (supervised|unattended), status.permissionPosture + a `Posture` printer column, Workspace.spec.agentPolicy.allowUnattended (#80, operator ADR 0006). Safe to install ahead of the operator: v0.5.0 ignores the new fields, so an `unattended` task is not gated until an operator with #80 runs.
