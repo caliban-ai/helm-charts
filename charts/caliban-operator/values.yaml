@@ -36,10 +36,17 @@ leaderElection:
 # the operator's Settings (see caliban-operator ADR 0002). Neutral defaults only.
 env:
   # CALIBAND_IMAGE: the caliband container image the operator runs in each Sandbox.
-  # 0.13.0: rustls 0.23.45 (RUSTSEC-2026-0285) on caliband's TLS transport, network
-  # mode hardening (caliban#648; a wildcard advertise host now only WARNS), and
-  # drain/resume. No new required env or ports.
-  calibandImage: "ghcr.io/caliban-ai/caliban:0.13.0"
+  # 0.14.0: the worker speaks ACP on its network listener (caliban#675, ADR 0059) —
+  # `drive_protocol = acp` over the same TLS+token socket, with stdio
+  # `caliban acp serve` unchanged; per-session permission posture on SpawnSpec
+  # (#676); ACP data-parity (#674); the new caliban-contract crate (#656). Fixes: a
+  # malformed untrusted-scope config warns and skips instead of exiting 78 (#670,
+  # trusted scopes stay fail-loud), and an honest context window (#669).
+  # No new required env or ports, and nothing to set here: both new fields default
+  # to the prior behavior (permission_posture=supervised, drive_protocol=ndjson),
+  # so this is a drop-in bump. The CRD side of the posture work already shipped in
+  # caliban-crds 0.2.5 (CalibanTask.spec.task.permissionPosture).
+  calibandImage: "ghcr.io/caliban-ai/caliban:0.14.0"
   # CALIBAND_PORT: TCP+TLS port caliband listens on inside the pod.
   calibandPort: "8443"
   # CALIBAN_WORKSPACE_ROOT: workspace mount path in the pod.
