@@ -2,5 +2,5 @@ apiVersion: v2
 name: ariel
 description: Ariel chat bridge (arield) — part of the caliban-ai system
 type: application
-version: 0.1.1
-appVersion: "0.1.0"   # arield from caliban-ai/ariel. NOT YET PUBLISHED: ariel's release workflow pushes ghcr.io/caliban-ai/ariel only on v* tags and ariel has not been tagged, so this tag will not pull until ariel cuts v0.1.0. Needs gonzalod >= 0.7.0 (the fleet access-control record kinds) with auth on.
+version: 0.1.2
+appVersion: "0.2.0"   # arield from caliban-ai/ariel; ghcr.io/caliban-ai/ariel:0.2.0 is published for linux/amd64 + arm64. v0.2.0 adds /ariel status and /ariel spawn and installs a logger, so a bad credential prints an error naming the variable instead of exiting silently as 0.1.0 did. Needs gonzalod >= 0.7.0 (the fleet access-control record kinds) with auth on, and a prosperod API token when prospero >= 0.8.0 has auth on (prospero.tokenSecret).

@@ -5,10 +5,11 @@ Deployment. Ariel has no state of its own (its records live in gonzalo) and no
 inbound API: Discord events arrive over an outbound Gateway connection, so the
 chart ships **no Service and no Ingress**.
 
-> **No image is published yet.** ariel's release workflow pushes
-> `ghcr.io/caliban-ai/ariel` only on `v*` tags, and ariel has not been tagged. The
-> chart renders and installs, but the pod can't pull until ariel cuts a release.
-> That's also why the `caliban-system` umbrella ships it disabled.
+> **Image:** `ghcr.io/caliban-ai/ariel:0.2.0` (linux/amd64 + arm64). v0.2.0 adds
+> `/ariel status` and `/ariel spawn`, and logs to stderr, so a missing or
+> unreadable credential prints an error naming the variable — 0.1.0 exited
+> silently. The `caliban-system` umbrella still ships ariel **disabled**: it needs
+> its Discord and service credentials before it does anything.
 
 ## Install
 
