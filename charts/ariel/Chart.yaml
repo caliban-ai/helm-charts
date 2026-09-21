@@ -2,5 +2,5 @@ apiVersion: v2
 name: ariel
 description: Ariel chat bridge (arield) — part of the caliban-ai system
 type: application
-version: 0.1.2
-appVersion: "0.2.0"   # arield from caliban-ai/ariel; ghcr.io/caliban-ai/ariel:0.2.0 is published for linux/amd64 + arm64. v0.2.0 adds /ariel status and /ariel spawn and installs a logger, so a bad credential prints an error naming the variable instead of exiting silently as 0.1.0 did. Needs gonzalod >= 0.7.0 (the fleet access-control record kinds) with auth on, and a prosperod API token when prospero >= 0.8.0 has auth on (prospero.tokenSecret).
+version: 0.1.3
+appVersion: "0.3.0"   # arield from caliban-ai/ariel; ghcr.io/caliban-ai/ariel:0.3.0 is published for linux/amd64 + arm64. v0.3.0 reloads channel configuration while running — every ARIEL_CHANNEL_RELOAD_SECS (60 by default, optional; set it through `env` if needed) — where 0.2.0 only read channel records at startup and needed a restart to pick up a new channel. A failed reload keeps the channels already served, so a gonzalod blip does not tear down notifications. Also adds /ariel kill, /ariel respawn, /ariel channel, /ariel configure and /ariel invite, and client TLS; in-cluster plain http:// Service URLs remain correct, TLS only matters through an ingress. No required env changed. Needs gonzalod >= 0.7.0 (the fleet access-control record kinds) with auth on, and a prosperod API token when prospero >= 0.8.0 has auth on (prospero.tokenSecret).
