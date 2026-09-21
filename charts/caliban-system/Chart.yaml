@@ -2,7 +2,7 @@ apiVersion: v2
 name: caliban-system
 description: Umbrella chart composing the full caliban-ai system on Kubernetes
 type: application
-version: 0.7.7
+version: 0.7.8
 appVersion: "0.1.0"
 dependencies:
   - name: caliban-crds
@@ -26,6 +26,6 @@ dependencies:
     repository: "file://../caliban-operator"
     condition: caliban-operator.enabled
   - name: ariel
-    version: "0.1.2"
+    version: "0.1.3"
     repository: "file://../ariel"
     condition: ariel.enabled
