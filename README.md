@@ -32,11 +32,12 @@ Each app chart is independently installable; the umbrella wires them together.
 ## How the system wires together
 
 ```
-Discord ──► arield ──HTTP──► prosperod ──HTTP+SSE──► caliband (in a Sandbox pod)
-              │                  │                        ▲
-              │                  └── CalibanTask CRs ──────┤
-              │                                 caliban-operator
-              └──────────── records ──────► gonzalod ◄─────┘
+Discord ──► arield ──HTTP + SSE──► prosperod ──TLS + token──► caliband
+              │                        │                   (in a Sandbox pod)
+              │                        │                          ▲
+              │                        └── CalibanTask CRs ────────┤
+              │                                         caliban-operator
+              └──────────── records ────────► gonzalod ◄───────────┘
 ```
 
 - **`gonzalod`** is the record store for everything durable: agent memory and
