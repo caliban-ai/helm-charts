@@ -3,18 +3,23 @@
 Deploys the gonzalo persistence daemon (`gonzalod`), HTTP + gRPC, as a
 single-replica StatefulSet using the **filesystem substrate** on a PVC.
 
+Project site: <https://caliban-ai.github.io/gonzalo/>.
+
 ## Install
 
-    helm install gonzalo charts/gonzalo \
-      --set image.repository=ghcr.io/caliban-ai/gonzalo
+    helm install gonzalo charts/gonzalo
+
+`ghcr.io/caliban-ai/gonzalo` is public and is the chart's default
+`image.repository`, so no `--set` and no `imagePullSecrets` are needed. Override
+it only to pin a mirror or a fork.
 
 ## Values
 
 | Key | Default | Notes |
 |-----|---------|-------|
 | `replicaCount` | `1` | fs substrate = single writer (see HA note) |
-| `image.repository` | `""` | required at install |
-| `image.tag` | `""` | defaults to `.Chart.AppVersion` |
+| `image.repository` | `ghcr.io/caliban-ai/gonzalo` | the public image; override to pin a mirror/fork |
+| `image.tag` | `""` | defaults to `.Chart.AppVersion` (currently `0.7.0`) |
 | `service.type` | `ClusterIP` | |
 | `service.httpPort` | `8080` | HTTP/JSON |
 | `service.grpcPort` | `50051` | gRPC |
@@ -23,7 +28,7 @@ single-replica StatefulSet using the **filesystem substrate** on a PVC.
 | `persistence.storageClass` | `""` | `""` = cluster default |
 | `persistence.size` | `1Gi` | |
 | `persistence.accessMode` | `ReadWriteOnce` | |
-| `env` | `{}` | extra raw env vars (map of name: value) |
+| `env` | `{}` | extra raw env vars (map of name: value) — e.g. `GONZALO_ANCESTOR_CAP: "32"` |
 | `resources` | `{}` | |
 | `nodeSelector` | `{}` | |
 | `tolerations` | `[]` | |
@@ -87,6 +92,19 @@ read  = ["fleet-audit"]
 
 gonzalod stamps every authenticated write with the principal's `name` as author,
 so a client cannot forge authorship.
+
+## Upgrading to 0.7.0: upgrade every gonzalo binary together
+
+0.7.0 makes a delete a **tombstone** that replicates (gonzalo ADR 0021) and adds
+the fleet access-control record kinds Ariel stores (ADR 0022). A 0.6 binary — CLI,
+`gonzalod`, or anything built on `gonzalo-core` 0.6 — that reads a store holding a
+tombstone fails on that key, and one that runs `sync` against 0.7 data silently
+copies deleted records back. A 0.7 client against a 0.6 `gonzalod` fails
+replication reads with an explicit "upgrade gonzalod" error. **Upgrade every
+binary that reads this store directly, and every binary that runs sync, at the
+same time** — including any `gonzalo` CLI on a developer machine pointed at it.
+Nothing daemon-facing in this chart changed: no new required env, ports or
+storage layout.
 
 **Before turning auth on:** every client configured for remote storage needs a
 token, or it gets 401s. For caliban that means any settings file with

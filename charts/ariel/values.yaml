@@ -7,7 +7,7 @@
 # before the bridge runs. See the chart README.
 
 image:
-  repository: ghcr.io/caliban-ai/ariel   # public once ariel publishes; override at deploy time
+  repository: ghcr.io/caliban-ai/ariel   # public image; override at deploy time
   tag: ""                  # defaults to .Chart.AppVersion when unset
   pullPolicy: IfNotPresent
 imagePullSecrets: []       # e.g. [{ name: ghcr-pull }] when pulling private images

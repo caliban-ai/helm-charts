@@ -3,35 +3,54 @@
 This Helm chart installs the Agent Sandbox controller, which manages `Sandbox` resources on Kubernetes.
 CRDs are bundled in the `crds/` directory and are installed automatically by Helm before any other resources.
 
+> **VENDORED, not upstream.** This is a copy of
+> [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox)'s
+> `helm/` chart at **v0.5.0**, with batteries-included defaults added (a pinned
+> `image.tag`, sane resources) so the `caliban-system` umbrella can ship it
+> default-on. Paths below are **this repo's**, not upstream's. On a re-sync, copy
+> upstream `helm/` over `charts/agent-sandbox/` and re-apply the provenance header
+> in `Chart.yaml`, the defaults in `values.yaml`, and this note.
+>
+> **Upstream has since reached v1.0.x.** Re-syncing is not a tag bump: it changes
+> the CRD schemas the operator's `Sandbox` objects are validated against, so it
+> needs the repo's Level 3 `reconcile-gate` to prove the operator↔agent-sandbox
+> path still works. Do not raise `image.tag` without re-vendoring the CRDs to match.
+>
+> In practice you install this through the umbrella
+> (`helm install caliban-system charts/caliban-system`), which already enables it;
+> the standalone commands below are for installing it on its own.
+
 ## Installation
 
 ### Basic install
 
 ```bash
-helm install agent-sandbox ./helm/ \
+helm install agent-sandbox charts/agent-sandbox \
   --namespace agent-sandbox-system \
-  --create-namespace \
-  --set image.tag=<version>
+  --create-namespace
 ```
+
+`image.tag` defaults to `v0.5.0` (the vendored chart version) — pass
+`--set image.tag=<version>` only to override it.
 
 ### Install with extensions enabled
 
 Extensions add support for `SandboxWarmPool`, `SandboxTemplate`, and `SandboxClaim` resources.
 
 ```bash
-helm install agent-sandbox ./helm/ \
+helm install agent-sandbox charts/agent-sandbox \
   --namespace agent-sandbox-system \
   --create-namespace \
-  --set image.tag=<version> \
   --set controller.extensions=true
 ```
+
+Through the umbrella, that is `--set agent-sandbox.controller.extensions=true`.
 
 ### Install into an existing namespace
 
 ```bash
-helm install agent-sandbox ./helm/ \
+helm install agent-sandbox charts/agent-sandbox \
   --namespace my-namespace \
-  --set image.tag=<version> \
   --set namespace.create=false \
   --set namespace.name=my-namespace
 ```
@@ -39,7 +58,7 @@ helm install agent-sandbox ./helm/ \
 ## Upgrading
 
 ```bash
-helm upgrade agent-sandbox ./helm/ \
+helm upgrade agent-sandbox charts/agent-sandbox \
   --namespace agent-sandbox-system \
   --reuse-values \
   --set image.tag=<new-version>
@@ -48,14 +67,19 @@ helm upgrade agent-sandbox ./helm/ \
 > **Note**: Helm does not upgrade CRDs placed in `crds/` automatically. To update CRDs manually after a chart version bump, apply them directly:
 >
 > ```bash
-> kubectl apply -f helm/crds/
+> kubectl apply -f charts/agent-sandbox/crds/
 > ```
 
 ### v1alpha1 → v1beta1 storage migration
 
-Upgrades to chart versions that move CRDs from `v1alpha1` to `v1beta1` require a manual storage migration using the `dev/tools/migrate.sh` script.
+Upgrades to chart versions that move CRDs from `v1alpha1` to `v1beta1` require a
+manual storage migration. The vendored copy of upstream's script is
+[`files/migrate.sh`](files/migrate.sh).
 
-See [`docs/api-migration-guide.md`](../docs/api-migration-guide.md) for full details, sequence of steps, and operational guidelines.
+See upstream's
+[API migration guide](https://github.com/kubernetes-sigs/agent-sandbox/blob/main/docs/api-migration-guide.md)
+for full details, sequence of steps, and operational guidelines. (This chart
+already ships `v1beta1` CRDs, so a fresh install needs no migration.)
 
 ## Uninstallation
 
@@ -66,7 +90,7 @@ helm uninstall agent-sandbox --namespace agent-sandbox-system
 > **Note**: Helm does not delete CRDs on uninstall. To remove all CRDs and their associated custom resources:
 >
 > ```bash
-> kubectl delete -f helm/crds/
+> kubectl delete -f charts/agent-sandbox/crds/
 > ```
 >
 > Warning: This will delete **all** `Sandbox`, `SandboxWarmPool`, `SandboxTemplate`, and `SandboxClaim` objects across all namespaces.
@@ -77,7 +101,7 @@ The following table lists the configurable parameters and their defaults.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image.tag` | Controller image tag — **required** | `""` |
+| `image.tag` | Controller image tag (vendored default; upstream leaves this empty and required) | `v0.5.0` |
 | `image.repository` | Controller image repository | `registry.k8s.io/agent-sandbox/agent-sandbox-controller` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `replicaCount` | Number of controller replicas | `1` |

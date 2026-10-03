@@ -35,7 +35,10 @@ leaderElection:
 # Environment the operator injects into the caliband pods it creates. These map to
 # the operator's Settings (see caliban-operator ADR 0002). Neutral defaults only.
 env:
-  # CALIBAND_IMAGE: the caliband container image the operator runs in each Sandbox.
+  # CALIBAND_IMAGE: the caliban container image the operator runs in each Sandbox
+  # (its ENTRYPOINT is `caliband`). Pinned independently of this chart's
+  # appVersion — the operator and the agent are released separately.
+  #
   # 0.14.0: the worker speaks ACP on its network listener (caliban#675, ADR 0059) —
   # `drive_protocol = acp` over the same TLS+token socket, with stdio
   # `caliban acp serve` unchanged; per-session permission posture on SpawnSpec
@@ -43,9 +46,27 @@ env:
   # malformed untrusted-scope config warns and skips instead of exiting 78 (#670,
   # trusted scopes stay fail-loud), and an honest context window (#669).
   # No new required env or ports, and nothing to set here: both new fields default
-  # to the prior behavior (permission_posture=supervised, drive_protocol=ndjson),
-  # so this is a drop-in bump. The CRD side of the posture work already shipped in
-  # caliban-crds 0.2.5 (CalibanTask.spec.task.permissionPosture).
+  # to the prior behavior (permission_posture=supervised, drive_protocol=ndjson).
+  # The CRD side of the posture work shipped in caliban-crds 0.2.5
+  # (CalibanTask.spec.task.permissionPosture).
+  #
+  # KNOWN GAP — caliban 0.15.0 is published but NOT pinned here, on purpose.
+  # What was checked: `ghcr.io/caliban-ai/caliban:0.15.0` exists; the caliband
+  # launch contract (caliban-contract `launch.rs` flag/env names) is UNCHANGED
+  # between 0.14.0 and 0.15.0, so the arguments the operator builds are still
+  # valid. What makes it more than a tag bump:
+  #   * caliban 0.15.0 is a self-declared BREAKING release — `caliban.toml`
+  #     walk-up discovery was removed in favour of an explicit
+  #     CALIBAN_ROUTER_CONFIG path (ADR 0060). The operator already passes an
+  #     explicit mounted path for `routerConfigRef`, so it should be unaffected —
+  #     but a task whose workspace relies on a bare repo-root caliban.toml would
+  #     silently stop picking it up.
+  #   * caliban-operator v0.6.0 pins `caliban-contract = "=0.14.0"` exactly,
+  #     i.e. the operator builds caliband's launch from the 0.14 contract. Moving
+  #     the runtime ahead of the contract the operator was built against is an
+  #     operator-ownership decision, not a chart edit.
+  # Validate with the Level 3 `reconcile-gate` (a real CalibanTask reaching a Ready
+  # sandbox pod) before changing this line — see test/integration/README.md.
   calibandImage: "ghcr.io/caliban-ai/caliban:0.14.0"
   # CALIBAND_PORT: TCP+TLS port caliband listens on inside the pod.
   calibandPort: "8443"
