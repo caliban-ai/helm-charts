@@ -3,8 +3,9 @@
 # Brings the full umbrella up (like Level 2), applies a CalibanTask, and asserts the
 # operator reconciles it end-to-end into a RUNNING sandboxed caliband pod
 # (CalibanTask.status.phase == Running). This is the deepest tier: it requires the
-# caliband image (ghcr.io/caliban-ai/caliban) to be published AND the operator's
-# reconcile path to work — so it stays red until both are true, by design.
+# caliband image (ghcr.io/caliban-ai/caliban, published) AND the operator's reconcile
+# path to work, so it is the gate to run before changing either the operator chart's
+# appVersion or caliban-operator.env.calibandImage.
 #
 # On failure it dumps where the reconcile stalled: the CalibanTask status, the
 # agent-sandbox Sandbox the operator should have created, the backing pod, and the

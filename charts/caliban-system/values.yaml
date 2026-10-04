@@ -36,16 +36,20 @@ prospero:
 caliban-crds:
   enabled: false
 
-# The caliban-operator chart is now real (reconciles CalibanTask → sandboxed
-# caliband pods). Kept OFF by default until agent-sandbox is bundled (helm-charts#6)
-# and the operator image is published — enabling it also requires caliban-crds.enabled=true.
+# The caliban-operator chart (reconciles CalibanTask → sandboxed caliband pods).
+# The image is published (ghcr.io/caliban-ai/caliban-operator) and agent-sandbox is
+# bundled above, so this is ready to enable — it is kept OFF only so the default
+# install is the infra tier (gonzalo + prospero). Enabling it also requires
+# caliban-crds.enabled=true, or the API server prunes the fields the operator reads.
 caliban-operator:
   enabled: false
 
-# Ariel chat bridge (arield). OFF by default: unconfigured it only serves
-# /healthz, no ariel image is published yet, and the bridge needs gonzalod >= 0.7.0
-# with auth on. Configure prospero/gonzalo URLs, Discord IDs and token Secret names
-# in your private overlay — see charts/ariel/README.md.
+# Ariel chat bridge (arield). The image is published (ghcr.io/caliban-ai/ariel).
+# OFF by default because unconfigured it only serves /healthz: the bridge needs
+# Discord credentials, a prosperod API token, and gonzalod >= 0.7.0 with auth on
+# (this umbrella ships gonzalo 0.7.0, so that part is satisfied). Configure
+# prospero/gonzalo URLs, Discord IDs and token Secret names in your private
+# overlay — see charts/ariel/README.md.
 ariel:
   enabled: false
 

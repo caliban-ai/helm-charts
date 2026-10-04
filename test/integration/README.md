@@ -6,8 +6,8 @@ a chart to a real API server. This suite does.
 
 ## Test tiers
 
-The ladder — Level 1 is a required gate; Level 2 is a **non-blocking deployability
-gate** (see below); Level 3 is deferred:
+The ladder. **All four tiers are required gates in CI** — a red at any level
+blocks merge:
 
 | Level | What it proves | Needs images? | Needs registry secrets? | In CI? |
 |-------|----------------|:---:|:---:|:---:|
@@ -29,8 +29,11 @@ image/secret cost:
   accepted) and an invalid one (must be rejected).
 - **Operator RBAC sufficiency.** `caliban-operator` ships a ClusterRole. Nothing
   else checks it actually *permits* the verbs/resources the operator needs. Level 1
-  asserts the full matrix — including a few negative controls the operator must be
-  **denied** — using raw `SubjectAccessReview` objects.
+  asserts the full cluster-scoped matrix — including a few negative controls the
+  operator must be **denied** — using raw `SubjectAccessReview` objects. (Not yet
+  covered: the namespaced `leases` Role that `leaderElection.enabled` now renders
+  by default. L2/L3 exercise it implicitly, since the operator must take its lease
+  before it reconciles anything.)
 - **Prospero RBAC sufficiency.** Under `fleetBackend=k8s` prospero gets a
   *namespaced* Role — CalibanTask/Workspace CRUD plus `patch` on
   `calibantasks/status` for the `AgentsSettled` condition. Level 1 asserts it the
@@ -51,10 +54,11 @@ is safe to deploy to the home cluster** — and the same script runs locally aga
 throwaway namespace as a pre-`helm upgrade` check. On failure it dumps which workload
 isn't Ready and why (describe / logs / events) to the job log and the step summary.
 
-It uses **only public images** — no registry secrets, no private overlay. The
-`deploy-gate` CI job is **`continue-on-error: true`** (non-blocking) so it doesn't
-red-wall unrelated PRs while readiness is being driven to green. Promote it to a
-required gate by dropping that line once it passes reliably.
+It uses **only public images** — no registry secrets, no private overlay. It does
+create one Secret: prospero >= 0.8.0 refuses to bind `0.0.0.0` without API auth,
+so the script mints a throwaway token, hashes it, and installs with
+`--set prospero.apiAuth.tokensSecret.name=prospero-api-tokens`. That is the worked
+example for any real install (see the prospero chart README).
 
 **Required gate.** The `gonzalo`, `prospero`, and `caliban-operator` ghcr packages are
 public and the full umbrella reaches Ready (verified on kind + k3s), so `deploy-gate`
@@ -79,9 +83,11 @@ Ready pod (workspace cloned, caliband up). On failure it dumps where the reconci
 stalled: the CalibanTask status, the agent-sandbox `Sandbox`, the backing pod, and the
 **operator's own logs**.
 
-**Required gate.** Verified green end-to-end (kind + k3s) with `caliban-operator:0.1.1`
-and the caliband image: `CalibanTask → Sandbox → pod Ready`. A red here means the
-operator↔agent-sandbox reconcile path or the caliband image regressed.
+**Required gate.** Verified green end-to-end (kind + k3s): `CalibanTask → Sandbox →
+pod Ready`. A red here means the operator↔agent-sandbox reconcile path or the
+caliband image regressed. The two pins it exercises are the operator chart's
+`appVersion` (currently `0.6.0`) and `caliban-operator.env.calibandImage` (the
+agent runtime) — this gate is the thing to run before changing either.
 
 **What L3 caught during development.** With the earlier operator (`0.1.0`/`latest`) the
 reconcile failed the server-side apply — the operator emitted a `Sandbox` with
@@ -93,11 +99,13 @@ caliban-operator#7 and released as `v0.1.1`, which this chart now pins.
 
 ## How it works
 
-Both `level1.sh` and `level2.sh` drive `helm` + `kubectl` against whatever
-`KUBECONFIG` points at, so they run identically locally and in CI. `level2.sh`
-installs the full umbrella once and blocks on `helm install --wait` (that is the
-whole point — it verifies Readiness), dumping diagnostics if the wait fails.
-`level1.sh` never waits for Readiness; its key properties:
+`level1.sh`, `level2.sh` and `level3.sh` all drive `helm` + `kubectl` against
+whatever `KUBECONFIG` points at, so they run identically locally and in CI.
+`level2.sh` installs the full umbrella once and blocks on `helm install --wait`
+(that is the whole point — it verifies Readiness), dumping diagnostics if the wait
+fails. `level3.sh` does the same install, then applies a `Workspace` and a
+`CalibanTask` and waits on the reconcile. `level1.sh` never waits for Readiness;
+its key properties:
 
 - **No Ready-wait.** Plain `helm install` applies manifests and returns; it never
   blocks on pod Readiness — which is why no container images are needed. Each phase
@@ -129,8 +137,17 @@ KUBECONFIG=/tmp/l1.kubeconfig test/integration/level1.sh
 KUBECONFIG=/tmp/l1.kubeconfig test/integration/level2.sh
 #   LEVEL2_TIMEOUT=6m overrides the Ready wait.
 
+# Level 3 — a CalibanTask reconciles into a Ready sandbox pod (slowest tier):
+KUBECONFIG=/tmp/l1.kubeconfig test/integration/level3.sh
+#   LEVEL3_DEPLOY_TIMEOUT=6m     umbrella Ready wait
+#   LEVEL3_RECONCILE_TIMEOUT=4m  CalibanTask -> Running wait
+#   LEVEL3_POD_TIMEOUT=3m        sandbox pod -> Ready wait
+
 kind delete cluster --name caliban-l1
 ```
 
 Level 1 exits 0 when all assertions pass (`N passed, M failed` tally). Level 2 exits 0
-when every umbrella workload reaches Ready, else 1 with a diagnostic dump.
+when every umbrella workload reaches Ready, else 1 with a diagnostic dump. Level 3
+exits 0 when the `CalibanTask` reaches `status.phase=Running` **and** its backing
+`<task>-sbx` pod reaches Ready, else 1 with the CalibanTask status, the `Sandbox`,
+the pod, and the operator's logs.
