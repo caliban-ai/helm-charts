@@ -47,6 +47,23 @@ spec:
               value: {{ .Values.global.sessionPlane.tokenSecret | quote }}
             - name: CALIBAN_SESSION_TOKEN_KEY
               value: {{ .Values.global.sessionPlane.tokenKey | quote }}
+            # Leader election (caliban-operator#48). POD_NAME is the lease
+            # holder identity: it must differ per replica, or two replicas look
+            # like the same holder to each other and both proceed.
+            - name: CALIBAN_LEADER_ELECTION
+              value: {{ .Values.leaderElection.enabled | quote }}
+            - name: CALIBAN_LEASE_NAME
+              value: {{ .Values.leaderElection.leaseName | quote }}
+            - name: CALIBAN_LEASE_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: CALIBAN_LEASE_DURATION_SECONDS
+              value: {{ .Values.leaderElection.durationSeconds | quote }}
+            - name: CALIBAN_LEASE_GRACE_SECONDS
+              value: {{ .Values.leaderElection.graceSeconds | quote }}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
