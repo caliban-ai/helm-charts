@@ -10,7 +10,7 @@ installs them together.
 | `agent-sandbox` (vendored v0.5.0) | v0.5.0 | **on** |
 | `gonzalo` | 0.7.0 | **on** |
 | `prospero` | 0.8.1 | **on** |
-| `caliban-crds` | 0.2.5 | off |
+| `caliban-crds` | 0.2.9 | off |
 | `caliban-operator` | 0.6.0 | off |
 | `ariel` | 0.3.0 | off |
 

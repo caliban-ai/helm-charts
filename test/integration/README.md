@@ -29,8 +29,11 @@ image/secret cost:
   accepted) and an invalid one (must be rejected).
 - **Operator RBAC sufficiency.** `caliban-operator` ships a ClusterRole. Nothing
   else checks it actually *permits* the verbs/resources the operator needs. Level 1
-  asserts the full matrix — including a few negative controls the operator must be
-  **denied** — using raw `SubjectAccessReview` objects.
+  asserts the full cluster-scoped matrix — including a few negative controls the
+  operator must be **denied** — using raw `SubjectAccessReview` objects. (Not yet
+  covered: the namespaced `leases` Role that `leaderElection.enabled` now renders
+  by default. L2/L3 exercise it implicitly, since the operator must take its lease
+  before it reconciles anything.)
 - **Prospero RBAC sufficiency.** Under `fleetBackend=k8s` prospero gets a
   *namespaced* Role — CalibanTask/Workspace CRUD plus `patch` on
   `calibantasks/status` for the `AgentsSettled` condition. Level 1 asserts it the

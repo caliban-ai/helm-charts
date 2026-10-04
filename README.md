@@ -18,7 +18,7 @@ Helm charts for deploying the **caliban-ai** system on Kubernetes.
 | `charts/prospero` | prospero control plane (`prosperod`) + dashboard | 0.8.1 | [prospero](https://caliban-ai.github.io/prospero/) |
 | `charts/caliban-operator` | the kube-rs operator (`CalibanTask` controller) | 0.6.0 | — |
 | `charts/ariel` | Ariel chat bridge (`arield`); umbrella default off | 0.3.0 | [ariel](https://caliban-ai.github.io/ariel/) |
-| `charts/caliban-crds` | CRD install step (see its README — CRDs are installed separately) | 0.2.5 | — |
+| `charts/caliban-crds` | CRD install step (see its README — CRDs are installed separately) | 0.2.9 | — |
 | `charts/agent-sandbox` | vendored [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) v0.5.0 (Sandbox CRDs + controller) | v0.5.0 | — |
 | `charts/caliban-system` | **umbrella** — composes the above into a full-system install | — | — |
 
