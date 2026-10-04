@@ -2,15 +2,21 @@ apiVersion: v2
 name: caliban-system
 description: Umbrella chart composing the full caliban-ai system on Kubernetes
 type: application
-version: 0.7.13
+version: 0.7.14
 appVersion: "0.1.0"
 dependencies:
   - name: caliban-crds
     version: "0.2.9"
     repository: "file://../caliban-crds"
     condition: caliban-crds.enabled
+  # 0.1.1 => agent-sandbox v1.0.5. v1.0.0 removed the v1alpha1 API, the conversion
+  # webhook and its TLS certs, so the chart no longer ships the webhook Service or
+  # the Role/RoleBinding that let the controller manage its own cert Secret. The
+  # apiserver rejects the CRD upgrade unless every Sandbox CRD already reports only
+  # v1beta1 in status.storedVersions — see the chart README before upgrading a
+  # cluster that predates v0.5.x.
   - name: agent-sandbox
-    version: "0.1.0"
+    version: "0.1.1"
     repository: "file://../agent-sandbox"
     condition: agent-sandbox.enabled
   - name: gonzalo

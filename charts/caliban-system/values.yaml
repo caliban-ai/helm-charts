@@ -9,11 +9,11 @@
 # resources, database URL, secrets) via a SEPARATE PRIVATE overlay at deploy time:
 #   helm install caliban-system charts/caliban-system -f private-values.yaml
 
-# agent-sandbox (kubernetes-sigs/agent-sandbox v0.5.0) — the Sandbox CRDs +
+# agent-sandbox (kubernetes-sigs/agent-sandbox v1.0.5) — the Sandbox CRDs +
 # controller the operator composes. Default ON. Disable to BYO an existing install.
 agent-sandbox:
   enabled: true
-  # image.tag defaults to v0.5.0 (pinned in the subchart); override to upgrade.
+  # image.tag defaults to v1.0.5 (pinned in the subchart); override to upgrade.
   # Enable the SandboxTemplate/SandboxClaim/SandboxWarmPool controllers (epic P4):
   # controller:
   #   extensions: true

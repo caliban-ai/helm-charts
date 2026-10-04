@@ -19,7 +19,7 @@ Helm charts for deploying the **caliban-ai** system on Kubernetes.
 | `charts/caliban-operator` | the kube-rs operator (`CalibanTask` controller) | 0.6.0 | — |
 | `charts/ariel` | Ariel chat bridge (`arield`); umbrella default off | 0.3.0 | [ariel](https://caliban-ai.github.io/ariel/) |
 | `charts/caliban-crds` | CRD install step (see its README — CRDs are installed separately) | 0.2.9 | — |
-| `charts/agent-sandbox` | vendored [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) v0.5.0 (Sandbox CRDs + controller) | v0.5.0 | — |
+| `charts/agent-sandbox` | vendored [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) v1.0.5 (Sandbox CRDs + controller) | v1.0.5 | — |
 | `charts/caliban-system` | **umbrella** — composes the above into a full-system install | — | — |
 
 The agent runtime itself (`caliband`, from
@@ -59,7 +59,7 @@ Discord ──► arield ──HTTP + SSE──► prosperod ──TLS + token�
 
 The operator composes **agent-sandbox** (the `agents.x-k8s.io/v1beta1` `Sandbox`
 CRDs + controller). The umbrella **bundles our preferred install by default**
-(`charts/agent-sandbox`, vendored from kubernetes-sigs/agent-sandbox v0.5.0), so a
+(`charts/agent-sandbox`, vendored from kubernetes-sigs/agent-sandbox v1.0.5), so a
 default `helm install` of `caliban-system` brings it up alongside the operator.
 
 To **bring your own** agent-sandbox (an existing cluster install), disable the
@@ -73,11 +73,40 @@ Re-sync the vendored copy on a version bump: copy upstream `helm/` over
 `charts/agent-sandbox/` and re-apply the provenance header + defaults (see the
 chart's `Chart.yaml`).
 
-> **Vendored version is behind upstream.** We vendor **v0.5.0**; upstream has
-> since reached **v1.0.x**. Re-syncing is not a tag bump — it changes the CRDs
-> the operator's `Sandbox` objects are validated against, so it needs the
-> `reconcile-gate` (Level 3) to prove the operator↔agent-sandbox path still
-> works. Tracked separately; do not bump the pin in `values.yaml` alone.
+#### Upgrading an existing cluster to the v1.0.5 vendoring
+
+agent-sandbox v1.0.0 removed the `v1alpha1` API, the conversion webhook and its TLS
+certificates. Two consequences for a cluster that already runs an older install:
+
+1. **The API server rejects the CRD upgrade** unless all four Sandbox CRDs already
+   report only `v1beta1` in `status.storedVersions`. Check before upgrading — if
+   `v1alpha1` is still listed, run the v0.5.x storage migration first (upstream's
+   [API migration guide](https://github.com/kubernetes-sigs/agent-sandbox/blob/v1.0.5/docs/api-migration-guide.md)):
+
+   ```sh
+   kubectl get crd sandboxes.agents.x-k8s.io \
+     sandboxclaims.extensions.agents.x-k8s.io \
+     sandboxtemplates.extensions.agents.x-k8s.io \
+     sandboxwarmpools.extensions.agents.x-k8s.io \
+     -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.storedVersions}{"\n"}{end}'
+   ```
+
+2. **Four webhook objects are left orphaned** — the chart no longer renders them, and
+   Helm does not delete resources it has stopped rendering when a subchart is
+   upgraded in place. Remove them after the upgrade:
+
+   ```sh
+   kubectl delete -n agent-sandbox-system \
+     svc/agent-sandbox-webhook-service \
+     secret/agent-sandbox-webhook-certs \
+     role/agent-sandbox-controller \
+     rolebinding/agent-sandbox-controller \
+     --ignore-not-found
+   ```
+
+Note also that Helm never upgrades CRDs in a chart's `crds/` directory. GitOps engines
+that render with `helm template --include-crds` (Argo CD does) apply them normally; a
+plain `helm upgrade` needs `kubectl apply -f charts/agent-sandbox/crds/` first.
 
 ## Cluster-agnostic by rule (this repo is public)
 
