@@ -85,8 +85,9 @@ operator↔agent-sandbox reconcile path or the caliband image regressed.
 
 **What L3 caught during development.** With the earlier operator (`0.1.0`/`latest`) the
 reconcile failed the server-side apply — the operator emitted a `Sandbox` with
-`spec.volumeClaimTemplates[].apiVersion`, which agent-sandbox v0.5.0's schema rejects
-(`500: field not declared in schema`). That operator↔agent-sandbox mismatch — a
+`spec.volumeClaimTemplates[].apiVersion`, which the agent-sandbox `Sandbox` schema
+rejects (`500: field not declared in schema`) — true of v0.5.0 then, and still true of
+the vendored v1.0.5 now. That operator↔agent-sandbox mismatch — a
 cross-component break only a live reconcile can surface — was fixed in
 caliban-operator#7 and released as `v0.1.1`, which this chart now pins.
 

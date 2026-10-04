@@ -1,3 +1,14 @@
+<!--
+VENDORED from kubernetes-sigs/agent-sandbox v1.0.5 (the upstream `helm/` chart's
+README). Only this header was added and upstream's repo-relative links were
+rewritten to absolute URLs pinned at v1.0.5: the files they point at (`docs/`,
+`codegen.go`) live in the upstream repo, not here. Paths such as `./helm/` and
+`helm/crds/` in the commands below are likewise upstream's — in this repo the
+chart is `charts/agent-sandbox`, and the `## Development` section describes
+upstream's codegen, not ours.
+Upstream: https://github.com/kubernetes-sigs/agent-sandbox
+-->
+
 # Agent Sandbox Helm Chart
 
 This Helm chart installs the Agent Sandbox controller, which manages `Sandbox` resources on Kubernetes.
@@ -51,11 +62,9 @@ helm upgrade agent-sandbox ./helm/ \
 > kubectl apply -f helm/crds/
 > ```
 
-### v1alpha1 → v1beta1 storage migration
+### Upgrading from v1alpha1
 
-Upgrades to chart versions that move CRDs from `v1alpha1` to `v1beta1` require a manual storage migration using the `dev/tools/migrate.sh` script.
-
-See [`docs/api-migration-guide.md`](../docs/api-migration-guide.md) for full details, sequence of steps, and operational guidelines.
+Support for the `v1alpha1` API has been removed. If you are upgrading from an older release that uses `v1alpha1`, you must upgrade to a `v0.5.x` release and run the storage migration first. Note that this upgrade inverts the general order above: you must apply the `v1beta1` CRDs **before** running `helm upgrade` to prevent conversion errors during webhook service teardown. See the [Helm Upgrade Ordering section in `docs/api-migration-guide.md`](https://github.com/kubernetes-sigs/agent-sandbox/blob/v1.0.5/docs/api-migration-guide.md#helm-upgrade-ordering) for the full sequence.
 
 ## Uninstallation
 
@@ -73,13 +82,14 @@ helm uninstall agent-sandbox --namespace agent-sandbox-system
 
 ## Configuration
 
-The following table lists the configurable parameters and their defaults.
+The following table lists the configurable parameters and their defaults. For flag details and recommended profiles at high scale, see [`docs/configuration.md`](https://github.com/kubernetes-sigs/agent-sandbox/blob/v1.0.5/docs/configuration.md) and [`docs/performance-tuning.md`](https://github.com/kubernetes-sigs/agent-sandbox/blob/v1.0.5/docs/performance-tuning.md).
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `image.tag` | Controller image tag — **required** | `""` |
 | `image.repository` | Controller image repository | `registry.k8s.io/agent-sandbox/agent-sandbox-controller` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| `imagePullSecrets` | List of image pull secrets (e.g. `[{name: my-secret}]`) to add to the Deployment | `[]` |
 | `replicaCount` | Number of controller replicas | `1` |
 | `namespace.create` | Create the namespace as part of the release | `true` |
 | `namespace.name` | Namespace to deploy into | `agent-sandbox-system` |
@@ -88,10 +98,23 @@ The following table lists the configurable parameters and their defaults.
 | `controller.clusterDomain` | Kubernetes cluster domain for service FQDN generation | `"cluster.local"` |
 | `controller.kubeApiQps` | Client-side QPS limit for the Kubernetes API client (`-1` = unlimited) | `-1.0` |
 | `controller.kubeApiBurst` | Burst limit for the Kubernetes API client | `10` |
-| `controller.sandboxConcurrentWorkers` | Max concurrent reconciles for the Sandbox controller | `1` |
-| `controller.sandboxClaimConcurrentWorkers` | Max concurrent reconciles for the SandboxClaim controller (extensions only) | `1` |
+| `controller.apiConnections` | Number of independent HTTP/2 connections to `kube-apiserver` for non-watch traffic | unset (controller default `1`) |
+| `controller.separateWatchConnection` | Give the manager's informer cache (list/watch streams) a dedicated HTTP/2 connection | unset (controller default `false`) |
+| `controller.sandboxConcurrentWorkers` | Max concurrent reconciles for the Sandbox controller | unset (controller default `100`) |
+| `controller.cacheLabelSelectors` | Scope Pod and Service informer caches to sandbox-labeled objects | unset (controller default `false`) |
+| `controller.disableSandboxEvents` | Disable Kubernetes `Event` emission from the Sandbox controller | unset (controller default `false`) |
+| `controller.sandboxWriteBehindWindow` | Coalescing window for recoverable metadata-only writes on Sandbox objects (`0` disables) | unset (controller default `0s`) |
+| `controller.sandboxClaimConcurrentWorkers` | Max concurrent reconciles for the SandboxClaim controller (extensions only) | unset (controller default `50`) |
 | `controller.sandboxWarmPoolConcurrentWorkers` | Max concurrent reconciles for the SandboxWarmPool controller (extensions only) | `1` |
 | `controller.sandboxTemplateConcurrentWorkers` | Max concurrent reconciles for the SandboxTemplate controller (extensions only) | `1` |
+| `controller.sandboxWarmPoolMaxBatchSize` | Max batch size for parallel sandbox create/delete in the SandboxWarmPool controller (extensions only) | `300` |
+| `controller.sandboxWarmPoolReplenishDelay` | Defer replacement sandbox creation after warm pool members drop out during claim bursts (extensions only) | unset (controller default `0s`) |
+| `controller.sandboxWarmPoolMaxRefillRate` | Max rate (sandboxes/second, per pool) for warm pool replenishment (`0` = unpaced, extensions only) | unset (controller default `0`) |
+| `controller.sandboxWarmPoolReadinessGracePeriod` | How long a warm pool sandbox may stay non-Ready before it is considered stuck and replaced, or held if unschedulable (extensions only) | unset (controller default `5m`) |
+| `controller.sandboxWarmPoolUnschedulableRecheckInterval` | Re-check interval for pools holding unschedulable sandboxes past the readiness grace period (extensions only) | unset (controller default `1m`) |
+| `controller.enableWarmPoolEviction` | Mark pods created by a warm pool as safe to evict (extensions only) | `true` |
+| `controller.disableClaimEvents` | Disable Kubernetes `Event` emission from the SandboxClaim controller (extensions only) | unset (controller default `false`) |
+| `controller.disableClaimObservabilityAnnotations` | Skip persisting SandboxClaim observability annotations to save one API write per claim (extensions only) | unset (controller default `false`) |
 | `controller.enableTracing` | Enable OpenTelemetry tracing via OTLP | `false` |
 | `controller.enablePprof` | Enable CPU profiling endpoint on the metrics server | `false` |
 | `controller.enablePprofDebug` | Enable all pprof endpoints (implies enablePprof) | `false` |
@@ -107,4 +130,43 @@ The following table lists the configurable parameters and their defaults.
 | `containerSecurityContext` | Container `securityContext` for the controller; only rendered when set | `null` |
 | `podAnnotations` | Annotations added to the controller pod template (e.g. service-mesh sidecar toggles, Prometheus scrape autodiscovery) | `{}` |
 | `podLabels` | Extra labels added to the controller pod template alongside the chart's selector labels (selector labels take precedence on conflict) | `{}` |
-| `webhookServiceName` | Name of the conversion webhook Service | `agent-sandbox-webhook-service` |
+| `service.name` | Name of the controller Service that exposes the metrics endpoint | `agent-sandbox-controller` |
+| `metrics.serviceMonitor.enabled` | Create a Prometheus Operator `ServiceMonitor` for the controller metrics endpoint (requires the prometheus-operator CRDs) | `false` |
+| `metrics.serviceMonitor.additionalLabels` | Extra labels on the `ServiceMonitor` (often required to match the Prometheus `serviceMonitorSelector`, e.g. `release: kube-prometheus-stack`) | `{}` |
+| `metrics.serviceMonitor.interval` | Scrape interval | `30s` |
+| `metrics.serviceMonitor.scrapeTimeout` | Scrape timeout (omitted unless set) | `""` |
+| `metrics.prometheusRule.enabled` | Create a Prometheus Operator `PrometheusRule` for the controller metrics endpoint (requires the prometheus-operator CRDs) | `false` |
+| `metrics.prometheusRule.additionalLabels` | Extra labels on the `PrometheusRule` (often required to match the Prometheus `ruleSelector`, e.g. `release: kube-prometheus-stack`) | `{}` |
+| `metrics.prometheusRule.additionalGroups` | Additional Prometheus rule groups appended after the chart's starter rule group | `[]` |
+
+## Metrics
+
+The controller serves Prometheus metrics over HTTP at `:8080/metrics` (exposed by the controller `Service` on the `metrics` port).
+
+To let the Prometheus Operator both scrape the controller and load the chart's starter alerting rule, enable the bundled `ServiceMonitor` and `PrometheusRule`:
+
+```bash
+helm install agent-sandbox ./helm/ \
+  --namespace agent-sandbox-system \
+  --create-namespace \
+  --set image.tag=<version> \
+  --set metrics.serviceMonitor.enabled=true \
+  --set metrics.prometheusRule.enabled=true \
+  --set metrics.serviceMonitor.additionalLabels.release=kube-prometheus-stack \
+  --set metrics.prometheusRule.additionalLabels.release=kube-prometheus-stack
+```
+
+> **Note**: The `ServiceMonitor` and `PrometheusRule` kinds are provided by the prometheus-operator CRDs (`monitoring.coreos.com/v1`). Enabling either one without those CRDs installed will fail at apply time.
+>
+> The bundled `PrometheusRule` starter set is intentionally small and is most useful once scrape discovery is configured via the chart `ServiceMonitor` or an equivalent Prometheus configuration.
+
+## Development
+
+The chart embeds content generated by the `//go:generate` directives in [`codegen.go`](https://github.com/kubernetes-sigs/agent-sandbox/blob/v1.0.5/codegen.go): the CRDs in `crds/`, and the controller-gen RBAC rules in `templates/rbac.generated.yaml` and `templates/extensions-rbac.generated.yaml`. Regenerate them with `make fix-go-generate`.
+
+That content is versioned by `Chart.yaml` rather than by its own contents, so **any change to it requires a chart version bump** — otherwise two charts with different contents claim the same version. This is enforced in presubmit by `dev/tools/verify-chart-version`.
+
+```bash
+make verify-chart-version   # check
+make bump-chart-version     # increment the patch version (bump minor/major by hand)
+```
