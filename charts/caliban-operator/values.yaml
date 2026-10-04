@@ -27,10 +27,25 @@ rbac:
   create: true
 
 leaderElection:
-  # Leader-election leases RBAC (namespaced Role/RoleBinding). OFF by default —
-  # the current operator runs a single replica and does not yet elect a leader.
-  # Enable together with replicaCount > 1 once the operator supports HA.
-  enabled: false
+  # Leader-election leases RBAC (namespaced Role/RoleBinding), and the operator's
+  # own election switch. ON by default: the operator elects a leader before
+  # running its controllers (caliban-operator#48), so raising replicaCount can
+  # never give two controllers force-applying the same objects. A single replica
+  # simply acquires the lease immediately.
+  #
+  # Safe to enable ahead of the operator: on a release without #48 this only
+  # creates an unused Role, and the operator ignores the env below. Turning it
+  # OFF on an operator that has #48 means no lease is taken at all, so do that
+  # only with replicaCount: 1.
+  enabled: true
+  # Name of the Lease the replicas contend for. Namespaced to the release.
+  leaseName: caliban-operator
+  # How long the lease is held before another replica may take it over, and how
+  # long before expiry the holder renews. grace must stay below duration, or the
+  # holder can lose the lease while still believing it holds it — the operator
+  # refuses to start otherwise.
+  durationSeconds: 15
+  graceSeconds: 5
 
 # Environment the operator injects into the caliband pods it creates. These map to
 # the operator's Settings (see caliban-operator ADR 0002). Neutral defaults only.
