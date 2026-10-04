@@ -1,6 +1,11 @@
 caliban-system installed (release {{ .Release.Name }}).
 
 Deployed tiers:
+{{- if index .Values "agent-sandbox" "enabled" }}
+  ✓ agent-sandbox — Sandbox CRDs + controller (bundled; set agent-sandbox.enabled=false to BYO)
+{{- else }}
+  · agent-sandbox — NOT bundled (BYO): the Sandbox CRDs + controller must already be in the cluster.
+{{- end }}
 {{- if index .Values "gonzalo" "enabled" }}
   ✓ gonzalo   — persistence daemon (gonzalod), Service {{ .Release.Name }}-gonzalo (HTTP :{{ index .Values "gonzalo" "service" "httpPort" | default 8080 }}, gRPC :{{ index .Values "gonzalo" "service" "grpcPort" | default 50051 }})
 {{- end }}
@@ -8,15 +13,35 @@ Deployed tiers:
   ✓ prospero  — control plane + dashboard, Service {{ .Release.Name }}-prospero (:{{ index .Values "prospero" "service" "port" | default 7878 }})
       dashboard:  kubectl port-forward svc/{{ .Release.Name }}-prospero {{ index .Values "prospero" "service" "port" | default 7878 }}:{{ index .Values "prospero" "service" "port" | default 7878 }}  then open http://localhost:{{ index .Values "prospero" "service" "port" | default 7878 }}/
 {{- end }}
+{{- if index .Values "caliban-crds" "enabled" }}
+  ✓ caliban-crds — Workspace + CalibanTask CRDs
+{{- end }}
 {{- if index .Values "caliban-operator" "enabled" }}
-  ✓ caliban-operator
+  ✓ caliban-operator — reconciles CalibanTask into sandboxed caliband pods
+
+      kubectl get calibantasks -A
 {{- else }}
-  · caliban-operator — DISABLED (arrives in P2 with agent-sandbox + CalibanTask; no agents run in-cluster yet).
+  · caliban-operator — DISABLED. Enable it together with caliban-crds to run agents
+      in-cluster:  --set caliban-crds.enabled=true --set caliban-operator.enabled=true
+{{- end }}
+{{- if index .Values "ariel" "enabled" }}
+  ✓ ariel — Discord chat bridge (arield)
+{{- else }}
+  · ariel — DISABLED (needs Discord credentials + a prosperod API token; see charts/ariel/README.md).
+{{- end }}
+{{- if index .Values "prospero" "enabled" }}
+{{- $pa := (index .Values "prospero" "apiAuth") | default dict }}
+{{- $tok := (get $pa "tokensSecret") | default dict }}
+{{- if and (not (get $tok "name")) (not (get $pa "insecureNoAuth")) }}
+
+WARNING: prospero has NO API-auth configuration. prosperod >= 0.8.0 binds 0.0.0.0
+and REFUSES TO START without it, so the pod will exit at startup. Set either
+  --set prospero.apiAuth.tokensSecret.name=<secret>   (recommended), or
+  --set prospero.apiAuth.insecureNoAuth=true          (no auth at all)
+See charts/prospero/README.md, "API authentication".
+{{- end }}
 {{- end }}
 
 Reminder: this chart is cluster-agnostic. Supply your cluster's storageClass,
 ingress, and resource settings via a private overlay (-f private-values.yaml) —
 see charts/caliban-system/example-values.yaml for a template.
-
-Before installing agent workloads (P2), agent-sandbox must be installed as a
-cluster prerequisite (see the repo README).

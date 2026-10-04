@@ -8,9 +8,10 @@
 # Every value below is optional; unset falls back to the chart's generic default.
 #
 # --- Pulling the images ---
-# The ghcr.io/caliban-ai/{gonzalo,prospero} packages are private by default.
-# Either make them public (simplest — no secret needed, drop the imagePullSecrets
-# lines below), or create a pull secret in the release namespace:
+# The ghcr.io/caliban-ai/{gonzalo,prospero,caliban-operator,ariel} packages are
+# PUBLIC, so the default install needs no pull secret and the imagePullSecrets
+# lines below can stay empty. They are kept only for the case where you mirror the
+# images into a private registry:
 #   kubectl create namespace caliban
 #   kubectl -n caliban create secret docker-registry ghcr-pull \
 #     --docker-server=ghcr.io --docker-username=<gh-user> --docker-password=<read:packages PAT>
@@ -39,6 +40,18 @@ prospero:
   enabled: true
   imagePullSecrets: []      # private images: [{ name: ghcr-pull }]
   topology: standalone      # single-node sqlite+PVC. Use "clustered" for HA (see below).
+  # REQUIRED: prospero >= 0.8.0 binds 0.0.0.0 and REFUSES TO START with no API
+  # auth configured. Name an existing Secret holding the tokens file (one
+  # `<name> <scope> sha256:<hex>` line per token, from
+  # `prospero token new <name> --scope read|operate|admin`)…
+  apiAuth:
+    tokensSecret:
+      name: ""              # e.g. prospero-api-tokens
+    # …or opt out explicitly (anyone who reaches the pod controls the fleet):
+    # insecureNoAuth: true
+    # Clustered + tokens also needs a shared cookie-signing key:
+    # sessionKeySecret:
+    #   name: prospero-session-key
   persistence:
     storageClass: ""        # "" = cluster default (node-local); shared class for durability
     size: 2Gi
@@ -52,7 +65,8 @@ prospero:
   #   existingSecret: prospero-db   # kubectl create secret generic prospero-db --from-literal=url='postgres://user:pass@host:5432/prospero'
   #   secretKey: url
   # k8s fleet (operator-backed agents) — requires caliban-crds + caliban-operator
-  # enabled below, and cert-manager installed in the cluster (session-plane TLS).
+  # enabled below. The session-plane TLS cert + token are minted by this chart;
+  # cert-manager is NOT required (see the umbrella README's Prerequisites).
   fleetBackend: k8s
 
 # The CalibanTask CRD, required by the operator. Enable together with the operator.
@@ -60,12 +74,32 @@ caliban-crds:
   enabled: true
 
 # Reconciles CalibanTask → sandboxed caliband pods. This is the k8s-fleet example:
-# enabling it (with prospero.fleetBackend: k8s above) also requires the shared
-# session-plane credentials below, which need cert-manager installed in-cluster.
+# enabling it (with prospero.fleetBackend: k8s above) also provisions the shared
+# session-plane credentials below. The caliband image the operator runs is
+# `caliban-operator.env.calibandImage` (see that chart's values.yaml).
 caliban-operator:
   enabled: true
 
-# Shared caliband session-plane credentials — required whenever the operator /
-# k8s fleet is in use (see caliban-operator/prospero above). Requires cert-manager.
+# Shared caliband session-plane credentials (bearer token + TLS serving cert),
+# used whenever the operator / k8s fleet is in use. The operator mounts them
+# unconditionally, so enabling caliban-operator already provisions them; set this
+# true only to force provisioning WITHOUT the operator. Helm mints both — no
+# cert-manager needed. For GitOps renderers that cannot `lookup`, provision these
+# Secrets out-of-band under the `global.sessionPlane` names and leave this unset.
 sessionPlane:
   enabled: true
+
+# Ariel chat bridge. Off by default; needs Discord credentials, a prosperod API
+# token (scope `operate`) and gonzalod auth on. See charts/ariel/README.md.
+# ariel:
+#   enabled: true
+#   prospero:
+#     url: http://caliban-system-prospero:7878
+#     tokenSecret: { name: ariel-prospero-token }
+#   gonzalo:
+#     url: http://caliban-system-gonzalo:8080
+#     tokenSecret: { name: ariel-gonzalo-token }
+#   discord:
+#     tokenSecret: { name: ariel-discord-token }
+#     guildId: "123456789012345678"        # QUOTE snowflakes
+#     applicationId: "987654321098765432"

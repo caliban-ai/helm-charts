@@ -8,18 +8,42 @@ selected by `topology`:
 - `clustered` — external Postgres, N replicas with leased ownership (Deployment).
   Postgres is a **prerequisite you provide**; supply its URL via a Secret.
 
+Project site: <https://caliban-ai.github.io/prospero/>.
+
+`ghcr.io/caliban-ai/prospero` is public and is the chart's default
+`image.repository` (built `--features k8s`, so `fleetBackend=k8s` works), so no
+`--set image.repository` and no `imagePullSecrets` are needed.
+
+> **Every install must make an API-auth choice.** prosperod >= 0.8.0 refuses to
+> bind `0.0.0.0` with no tokens configured, so without one of
+> `apiAuth.tokensSecret.name` or `apiAuth.insecureNoAuth=true` the chart renders
+> fine and **the pod exits at startup**. See
+> [API authentication](#api-authentication-prospero--080) below.
+
 ## Install — standalone
 
+    kubectl create secret generic prospero-api-tokens \
+      --from-literal=tokens="dashboard admin sha256:<hex>"
     helm install prospero charts/prospero \
-      --set image.repository=ghcr.io/caliban-ai/prospero
+      --set apiAuth.tokensSecret.name=prospero-api-tokens
+
+Or, to run with no API auth at all (anyone who can reach the pod controls the
+fleet):
+
+    helm install prospero charts/prospero --set apiAuth.insecureNoAuth=true
 
 ## Install — clustered
 
+Clustered with tokens also needs a shared cookie-signing key, or the render fails.
+
     kubectl create secret generic prospero-db --from-literal=url='postgres://…'
+    kubectl create secret generic prospero-session-key \
+      --from-literal=session.key="$(openssl rand -base64 48)"
     helm install prospero charts/prospero \
-      --set image.repository=ghcr.io/caliban-ai/prospero \
       --set topology=clustered --set replicaCount=3 \
-      --set database.existingSecret=prospero-db
+      --set database.existingSecret=prospero-db \
+      --set apiAuth.tokensSecret.name=prospero-api-tokens \
+      --set apiAuth.sessionKeySecret.name=prospero-session-key
 
 ## Values
 
@@ -28,11 +52,11 @@ selected by `topology`:
 | `topology` | `standalone` | `standalone` \| `clustered` (anything else fails fast) |
 | `replicaCount` | `1` | clustered only |
 | `image.repository` | `ghcr.io/caliban-ai/prospero` | the public image; override to pin a fork/mirror |
-| `image.tag` | `""` | defaults to `.Chart.AppVersion` when unset |
+| `image.tag` | `""` | defaults to `.Chart.AppVersion` when unset (currently `0.8.1`) |
 | `image.pullPolicy` | `IfNotPresent` | |
 | `service.port` | `7878` | REST/SSE/dashboard |
 | `host` | `local` | `PROSPERO_HOST` fleet *identity* (not the backend — see `fleetBackend`) |
-| `fleetBackend` | `local` | `local` (caliband over Unix — empty in a container) \| `k8s` (the config plane: reads/edits `CalibanTask` **and** `Workspace` CRs in this namespace so the dashboard manages the operator's workspaces + agents; needs image ≥ 0.1.1 and adds a Role over `calibantasks` + `workspaces`, with **no** Secret access) |
+| `fleetBackend` | `local` | `local` (caliband over Unix — empty in a container) \| `k8s` (the config plane: reads/edits `CalibanTask` **and** `Workspace` CRs in this namespace so the dashboard manages the operator's workspaces + agents; needs a prosperod built `--features k8s`, which the published image is, and adds a Role over `calibantasks` + `workspaces`, with **no** Secret access) |
 | `secretPicker.enabled` | `false` | k8s only; when `true`, grants prospero `list` on Secrets (names only, never values) so the dashboard can offer a `credentialsRef` picker. Off by default to keep prospero fully off credential RBAC |
 | `persistence.storageClass` | `""` | standalone only; `""` = cluster default. No toggle — the PVC always exists |
 | `persistence.size` | `1Gi` | standalone only |
@@ -52,6 +76,9 @@ selected by `topology`:
 | `nodeSelector` | `{}` | |
 | `tolerations` | `[]` | |
 | `affinity` | `{}` | |
+| `global.sessionPlane.tlsSecret` | `caliban-session-plane-tls` | shared session-plane names; consumed only when `fleetBackend=k8s`. The umbrella is the source of truth — declared here so a standalone install still renders |
+| `global.sessionPlane.tokenSecret` / `.tokenKey` | `caliban-session-plane-token` / `token` | caliband bearer token prosperod dials with |
+| `global.sessionPlane.serverName` | `caliband` | the serving cert's SAN **and** prosperod's TLS SNI — one value so they cannot diverge |
 
 ## API authentication (prospero >= 0.8.0)
 

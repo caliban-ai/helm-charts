@@ -5,11 +5,19 @@ Deployment. Ariel has no state of its own (its records live in gonzalo) and no
 inbound API: Discord events arrive over an outbound Gateway connection, so the
 chart ships **no Service and no Ingress**.
 
-> **Image:** `ghcr.io/caliban-ai/ariel:0.2.0` (linux/amd64 + arm64). v0.2.0 adds
-> `/ariel status` and `/ariel spawn`, and logs to stderr, so a missing or
-> unreadable credential prints an error naming the variable — 0.1.0 exited
-> silently. The `caliban-system` umbrella still ships ariel **disabled**: it needs
-> its Discord and service credentials before it does anything.
+Project site: <https://caliban-ai.github.io/ariel/>.
+
+> **Image:** `ghcr.io/caliban-ai/ariel:0.3.0` (linux/amd64 + arm64), the chart's
+> `appVersion`. v0.3.0 **reloads channel configuration while running** — every
+> `ARIEL_CHANNEL_RELOAD_SECS` (60 by default; set it through `env` to change it) —
+> where 0.2.0 read channel records only at startup and needed a restart to pick up
+> a new channel. A failed reload keeps serving the channels it already has, so a
+> gonzalod blip does not tear down notifications. It also adds `/ariel kill`,
+> `/ariel respawn`, `/ariel channel`, `/ariel configure` and `/ariel invite`, and
+> client TLS (in-cluster plain `http://` Service URLs stay correct — TLS only
+> matters through an ingress). **No required env changed**, so 0.2.0 → 0.3.0 is a
+> drop-in bump. The `caliban-system` umbrella still ships ariel **disabled**: it
+> needs its Discord and service credentials before it does anything.
 
 ## Install
 
@@ -43,7 +51,7 @@ chart ships **no Service and no Ingress**.
 | `discord.applicationId` | `""` | `ARIEL_DISCORD_APPLICATION_ID`; quoted digit string |
 | `dashboardUrl` | `""` | `ARIEL_DASHBOARD_URL`, linked from notifications (optional) |
 | `networkPolicy.enabled` | `false` | deny ingress except the health port; egress open |
-| `env` | `{}` | extra raw env vars |
+| `env` | `{}` | extra raw env vars — e.g. `ARIEL_CHANNEL_RELOAD_SECS: "60"` (0.3.0 channel hot-reload interval) |
 | `resources` | 50m/64Mi requests, 500m/256Mi limits | |
 
 ariel's `docs/guide/src/configuration.md` is the authoritative variable list.
@@ -76,7 +84,8 @@ startup, which is why the chart only sets those variables when a Secret is named
 - **gonzalod auth on**, with a principal for ariel scoped to the `fleet` and
   `fleet-audit` namespaces. See the gonzalo chart README's principals example.
   Without auth, any pod could write role grants and make itself an ariel admin.
-- **A published ariel image** (see above).
+
+The ariel image is published, so nothing else is blocking.
 
 Example private overlay:
 
