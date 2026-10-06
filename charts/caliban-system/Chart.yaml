@@ -2,7 +2,7 @@ apiVersion: v2
 name: caliban-system
 description: Umbrella chart composing the full caliban-ai system on Kubernetes
 type: application
-version: 0.7.16
+version: 0.7.17
 appVersion: "0.1.0"
 dependencies:
   - name: caliban-crds
@@ -32,8 +32,14 @@ dependencies:
     version: "0.3.3"
     repository: "file://../prospero"
     condition: prospero.enabled
+  # 0.2.11 => caliban-operator v0.7.0, which runs leader election by default and
+  # begins ENFORCING the unsupervised-policy gate: a Workspace setting
+  # permissionMode dontAsk/bypassPermissions or noPermissions without
+  # agentPolicy.allowUnattended is refused fail-closed, where v0.6.0 ignored
+  # those fields. Audit Workspaces before upgrading. Needs caliban-crds >= 0.2.9,
+  # which is already the pin above.
   - name: caliban-operator
-    version: "0.2.10"
+    version: "0.2.11"
     repository: "file://../caliban-operator"
     condition: caliban-operator.enabled
   # 0.1.4 => arield 0.4.0, which reads every fleet event from prospero's
