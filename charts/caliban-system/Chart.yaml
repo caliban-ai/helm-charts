@@ -2,7 +2,7 @@ apiVersion: v2
 name: caliban-system
 description: Umbrella chart composing the full caliban-ai system on Kubernetes
 type: application
-version: 0.7.14
+version: 0.7.15
 appVersion: "0.1.0"
 dependencies:
   - name: caliban-crds
@@ -23,8 +23,13 @@ dependencies:
     version: "0.3.1"
     repository: "file://../gonzalo"
     condition: gonzalo.enabled
+  # 0.3.3 => prosperod 0.9.0, which adds the fleet-wide event stream
+  # `GET /api/fleet/stream` and the `X-Prospero-On-Behalf-Of` subject header.
+  # Both are what ariel >= 0.4.0 needs: an 0.8.x prosperod does not serve the
+  # stream at all, so the bridge would retry a 404 forever and notify nothing.
+  # Raise this before raising the ariel dependency below.
   - name: prospero
-    version: "0.3.2"
+    version: "0.3.3"
     repository: "file://../prospero"
     condition: prospero.enabled
   - name: caliban-operator
